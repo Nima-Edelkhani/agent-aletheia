@@ -13,7 +13,19 @@ export const dynamic = "force-dynamic";
  *   {type:"result", response, trace}
  *   {type:"error", message}.
  */
+const MISSING_KEY_MESSAGE =
+  "ANTHROPIC_API_KEY is not set. Add it to the .env file at the project " +
+  "root (format: ANTHROPIC_API_KEY=sk-ant-your-key-here), then restart " +
+  "the dev server.";
+
 export async function POST(req: NextRequest) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return Response.json(
+      { type: "error", message: MISSING_KEY_MESSAGE, code: "missing_api_key" },
+      { status: 503 },
+    );
+  }
+
   let question: string;
   let specifiedFindingFormat: PayloadFormat | undefined;
   try {

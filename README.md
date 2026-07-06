@@ -10,36 +10,50 @@ Created and open-sourced by **Nima Edelkhani** · 2026.
 
 ## Quickstart
 
+**One-liner (macOS / Linux / WSL2):**
+
 ```bash
-git clone <this-repo> aletheia
+curl -fsSL https://raw.githubusercontent.com/nimaedelkhani/aletheia/main/scripts/install.sh | bash
+```
+
+That checks Node 20+, enables pnpm via corepack, clones the repo, installs deps, and drops you into the setup wizard when your terminal is interactive.
+
+**Manual (any platform):**
+
+```bash
+git clone https://github.com/nimaedelkhani/aletheia.git
 cd aletheia
 pnpm install && pnpm setup
 ```
 
-That's it. `pnpm setup` will:
+`pnpm setup` will:
 
 1. Copy `.env.example` → `.env` (won't overwrite an existing one).
 2. Seed `knowledge-base/` with the sample **Voxly** meeting-transcript corpus so you can ask questions immediately.
-3. Print the next steps.
+3. Ask you to add your Anthropic API key to `.env` yourself — the wizard never accepts the key via prompt, it stays in `.env` only.
+4. Verify the key with a 1-token test call.
+5. Offer to launch the web UI.
 
-Add your Anthropic API key to `.env`:
+The `.env` line format is exactly:
 
-```bash
-ANTHROPIC_API_KEY=sk-ant-...
+```
+ANTHROPIC_API_KEY=sk-ant-your-key-here
 ```
 
-Then:
+Get a key at https://console.anthropic.com/settings/keys.
+
+Once setup is done:
 
 ```bash
 # CLI
-pnpm aletheia ask "Which customers raised pricing concerns in the last 3 months?"
+pnpm aletheia ask "What did customers discuss in the past month?"
 
 # Web UI
 pnpm dev
 # open http://localhost:3000
 ```
 
-**Prereqs**: Node 20+, pnpm 9+, an Anthropic API key. That's the entire dependency footprint.
+**Prereqs**: Node 20+, pnpm 9+ (installed automatically by the one-liner via corepack), an Anthropic API key. That's the entire dependency footprint.
 
 ---
 

@@ -66,9 +66,17 @@ export function QuestionForm() {
         }),
         signal: ac.signal,
       });
-      if (!res.ok || !res.body) {
-        throw new Error(`Request failed: ${res.status}`);
+      if (!res.ok) {
+        // Server sent a structured error (e.g. missing ANTHROPIC_API_KEY).
+        // Surface its `message` directly so the user sees actionable text.
+        const body = await res.json().catch(() => null);
+        const msg =
+          body && typeof body === "object" && "message" in body
+            ? String((body as { message: unknown }).message)
+            : `Request failed: ${res.status}`;
+        throw new Error(msg);
       }
+      if (!res.body) throw new Error(`Request failed: ${res.status}`);
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buf = "";
