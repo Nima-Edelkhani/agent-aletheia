@@ -1,0 +1,51 @@
+{
+  "id": "q-013",
+  "purpose": "Exemplar for the typed-extraction path — caller passed a `specified_finding_format` schema, so signals should ALSO carry a validated payload alongside the generic finding_summary/finding_category.",
+  "input": {
+    "question": "Which meetings mentioned a specific dollar figure? Extract the amount and the surrounding context.",
+    "specified_finding_format": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["amount_usd", "context_summary"],
+      "properties": {
+        "amount_usd": {
+          "type": "number",
+          "description": "The dollar amount mentioned. Use the number only — no currency symbol."
+        },
+        "context_summary": {
+          "type": "string",
+          "description": "One-sentence description of what the dollar amount refers to (deal size, discount, uplift, ARR, etc.)"
+        }
+      }
+    }
+  },
+  "expected_orchestrator_behavior": {
+    "step_1_filter": "Broad inclusion — dollar figures could surface in any meeting type. No hard filter to enforce.",
+    "step_4_signals": "One signal per distinct dollar figure. finding_summary describes the figure in plain English; payload carries the strongly-typed extraction. Sub-agent must NOT include a payload field when specified_finding_format is null (default flow) — only when it's populated.",
+    "payload_validation": "Every emitted signal's payload must validate against the schema OR the signal is dropped as accuracy_pass=false."
+  },
+  "exemplar_signals": [
+    {
+      "signal_index": 1,
+      "scope_of_signal": "mtg-2026-05-07-nimbus_health-churn_save",
+      "finding_summary": "Nimbus Health's CFO cited $490K in annual contract value with roughly half unused.",
+      "finding_category": "contract_value_reference",
+      "payload": { "amount_usd": 490000, "context_summary": "Nimbus Health annual contract value under discussion; half unused per CFO." },
+      "reference_text_shape": "A verbatim quote where the CFO cites the $490K figure."
+    },
+    {
+      "signal_index": 2,
+      "scope_of_signal": "mtg-2026-06-12-meridian_retail-feature_request",
+      "finding_summary": "Meridian Retail was quoted 15% ACV or a $50K minimum for the Spanish language module.",
+      "finding_category": "pricing_quote_reference",
+      "payload": { "amount_usd": 50000, "context_summary": "Spanish language module pricing floor quoted to Meridian Retail." },
+      "reference_text_shape": "A verbatim quote naming the 15% / $50K floor for the Spanish module."
+    }
+  ],
+  "exemplar_response_text": "Two meetings surfaced specific dollar figures:\n\n- **Nimbus Health**, May 2026 [s1] — $490K in annual contract value (roughly half unused).\n- **Meridian Retail**, June 2026 [s2] — a $50K minimum quoted for the Spanish language module.",
+  "anti_patterns_this_run_should_avoid": [
+    "Emitting a payload field when the caller didn't request extraction (default flow).",
+    "Populating payload.amount_usd with a value not present verbatim in the reference_text.",
+    "Confusing the two roles: finding_summary is prose; payload is the machine-typed extraction. Both must agree on the underlying facts."
+  ]
+}

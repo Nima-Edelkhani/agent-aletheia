@@ -1,0 +1,62 @@
+# ─── dependencies + build artifacts ───────────────────────────────
+node_modules
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+.next
+out
+build
+dist
+.vercel
+coverage
+*.tsbuildinfo
+next-env.d.ts
+
+# ─── environment ────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+!.env.example
+
+# ─── evals / caches / logs ──────────────────────────────────────
+evals/report
+.cache
+.turbo
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ─── user knowledge base (seeded by `pnpm setup`; user drops their own docs here) ─
+knowledge-base/*
+!knowledge-base/.gitkeep
+
+# ─── OS junk ────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ─── editors / IDEs ─────────────────────────────────────────────
+.idea
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+.history
+.ionide
+
+# ─── AI-assistant / design-tool project memory (dev-only) ───────
+.claude
+.hallmark
+.cursor
+.aider*

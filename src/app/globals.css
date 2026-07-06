@@ -1,0 +1,338 @@
+/* Hallmark · redesign · macrostructure: Marquee Masthead (preserved) · tone: brutal · theme: Brutal
+ * anchor hue: acid yellow (55° · 100% · 50%)
+ * paper: bone (44 30% 94%) · ink: near-black (0 0% 4%)
+ * fonts: Archivo Black (display) · Space Grotesk (sans) · JetBrains Mono (mono)
+ * axes vs prior Editorial: paper band + display style + accent hue (all three differ)
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* shadcn/ui — light (brutal: bone paper, ink borders, acid accent) */
+    --background: 44 30% 94%;
+    --foreground: 0 0% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 4%;
+    --primary: 0 0% 4%;
+    --primary-foreground: 44 30% 94%;
+    --secondary: 44 25% 88%;
+    --secondary-foreground: 0 0% 4%;
+    --muted: 44 20% 88%;
+    --muted-foreground: 0 0% 30%;
+    --accent: 55 100% 50%;
+    --accent-foreground: 0 0% 4%;
+    --destructive: 0 84% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 4%;
+    --input: 0 0% 4%;
+    --ring: 0 0% 4%;
+    --radius: 0;
+
+    /* Aletheia tokens — brutal light */
+    --ink: 0 0% 4%;
+    --paper: 44 30% 94%;
+    --accent-color: 55 100% 50%;
+    --signal: 55 100% 50%;
+    --muted-fg: 0 0% 30%;
+  }
+
+  .dark {
+    /* shadcn/ui — dark (brutal: near-black paper, bone borders, acid accent) */
+    --background: 0 0% 6%;
+    --foreground: 44 25% 94%;
+    --card: 0 0% 10%;
+    --card-foreground: 44 25% 94%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 44 25% 94%;
+    --primary: 44 25% 94%;
+    --primary-foreground: 0 0% 4%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 44 25% 94%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 44 15% 65%;
+    --accent: 55 100% 55%;
+    --accent-foreground: 0 0% 4%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 44 25% 94%;
+    --border: 44 25% 94%;
+    --input: 44 25% 94%;
+    --ring: 44 25% 94%;
+
+    /* Aletheia tokens — brutal dark */
+    --ink: 44 25% 94%;
+    --paper: 0 0% 6%;
+    --accent-color: 55 100% 55%;
+    --signal: 55 100% 55%;
+    --muted-fg: 44 15% 65%;
+  }
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  .dark {
+    color-scheme: dark;
+  }
+  html,
+  body {
+    overflow-x: clip;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+  * {
+    border-color: hsl(var(--border));
+  }
+  ::selection {
+    background: hsl(var(--accent-color));
+    color: hsl(var(--ink));
+  }
+  /* Slop-test gate 51 — display headers can wrap inside long words if needed. */
+  h1,
+  h2,
+  h3 {
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+}
+
+/* ─── Brutal section marker ─────────────────────────────────────── */
+.marker {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid hsl(var(--ink));
+}
+.marker__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.9rem;
+  background: hsl(var(--ink));
+  color: hsl(var(--paper));
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 15px;
+  line-height: 1;
+  border-right: 1px solid hsl(var(--ink));
+}
+.marker__label {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.9rem;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: hsl(var(--ink));
+  border-right: 1px solid hsl(var(--ink));
+}
+.marker__rule {
+  flex: 1;
+  align-self: center;
+  height: 3px;
+  background: hsl(var(--ink));
+}
+
+/* ─── Brutal card treatment ──────────────────────────────────────── */
+/* Overrides shadcn Card defaults ONLY inside <main>: 2px black frame + hard */
+/* offset shadow. Snaps under hover. Component internals untouched.          */
+main .bg-card {
+  border-width: 2px !important;
+  border-color: hsl(var(--border)) !important;
+  border-radius: 0 !important;
+  box-shadow: 5px 5px 0 0 hsl(var(--border));
+  transition: box-shadow 120ms ease, transform 120ms ease;
+}
+main .bg-card:hover {
+  box-shadow: 3px 3px 0 0 hsl(var(--border));
+  transform: translate(2px, 2px);
+}
+
+/* Focus inside the Inquiry frame lights up the outer card with acid accent */
+.inquiry-frame:focus-within .bg-card:first-of-type {
+  box-shadow: 7px 7px 0 0 hsl(var(--accent-color)),
+    7px 7px 0 2px hsl(var(--border)) !important;
+  transform: translate(0, 0) !important;
+}
+
+/* ─── Signal card scroll target ─────────────────────────────────── */
+.signal-card {
+  transition: box-shadow 250ms ease, transform 250ms ease,
+    border-color 250ms ease;
+}
+.signal-card:target {
+  box-shadow: 8px 8px 0 0 hsl(var(--accent-color)),
+    8px 8px 0 2px hsl(var(--border)) !important;
+  transform: translate(-2px, -2px);
+}
+
+/* ─── Citation chip inside answer prose ─────────────────────────── */
+.cite-chip {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: baseline;
+  margin: 0 0.15em 0 0.15em;
+  padding: 0.05em 0.35em;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.78em;
+  font-weight: 700;
+  line-height: 1.2;
+  /* Locked colors: acid yellow chip needs black text for legibility in both
+     themes. The chip's own theme is invariant. */
+  color: #0a0a0a;
+  background: hsl(var(--accent-color));
+  border: 2px solid #0a0a0a;
+  border-radius: 0;
+  cursor: pointer;
+  /* No underline — the offset shadow + colored chip carry the "clickable"
+     affordance. Overrides `.prose-answer a { text-decoration: underline }`. */
+  text-decoration: none !important;
+  /* Brutal drop shadow — visually "raised" so it reads as a button. */
+  box-shadow: 2px 2px 0 0 #0a0a0a;
+  transition: background 100ms, color 100ms, box-shadow 100ms, transform 100ms;
+}
+.cite-chip:hover {
+  background: #0a0a0a;
+  color: hsl(var(--accent-color));
+  /* Snap the shadow away and translate into it — reads as "pressed". */
+  box-shadow: 0 0 0 0 #0a0a0a;
+  transform: translate(2px, 2px);
+}
+.cite-chip:focus-visible {
+  outline: 2px solid #0a0a0a;
+  outline-offset: 2px;
+}
+
+/* Dark mode: swap border/shadow to near-white so the chip's edge is visible
+   against the near-black page. Background stays acid yellow with black text. */
+.dark .cite-chip {
+  border-color: #fafafa;
+  box-shadow: 2px 2px 0 0 #fafafa;
+}
+.dark .cite-chip:hover {
+  background: #fafafa;
+  color: #0a0a0a;
+  box-shadow: 0 0 0 0 #fafafa;
+}
+.dark .cite-chip:focus-visible {
+  outline-color: #fafafa;
+}
+
+/* KB chip — when the collapsed toggle is hovered, background flips to acid
+   yellow. Force text to black in that state (works in both light and dark). */
+.kb-chip:hover {
+  color: #0a0a0a;
+}
+
+/* ─── Answer prose — matches signal card body (Space Grotesk sans) ─── */
+.prose-answer {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+.prose-answer p {
+  margin-bottom: 0.75em;
+}
+.prose-answer p:last-child {
+  margin-bottom: 0;
+}
+.prose-answer ul,
+.prose-answer ol {
+  margin: 0.5em 0 0.75em 0;
+  padding-left: 1.5em;
+}
+.prose-answer ul {
+  list-style: disc;
+}
+.prose-answer ol {
+  list-style: decimal;
+}
+.prose-answer li {
+  margin-bottom: 0.25em;
+}
+.prose-answer li > p {
+  margin-bottom: 0.25em;
+}
+.prose-answer strong {
+  font-weight: 700;
+}
+.prose-answer em {
+  font-style: italic;
+}
+.prose-answer h1,
+.prose-answer h2,
+.prose-answer h3 {
+  font-weight: 700;
+  margin: 0.75em 0 0.25em 0;
+  line-height: 1.2;
+}
+.prose-answer h1 {
+  font-size: 1.125rem;
+}
+.prose-answer h2 {
+  font-size: 1rem;
+}
+.prose-answer h3 {
+  font-size: 0.9375rem;
+}
+.prose-answer code {
+  background: hsl(var(--muted));
+  color: hsl(var(--ink));
+  padding: 0.1em 0.3em;
+  border-radius: 0;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.85em;
+}
+.prose-answer pre {
+  background: hsl(var(--muted));
+  color: hsl(var(--ink));
+  padding: 0.75em 1em;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0;
+  overflow-x: auto;
+  margin: 0.75em 0;
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+.prose-answer pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+.prose-answer blockquote {
+  border-left: 2px solid hsl(var(--border));
+  padding: 0.25em 0.75em;
+  color: hsl(var(--muted-fg));
+  margin: 0.5em 0;
+}
+.prose-answer a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 600;
+}
+.prose-answer table {
+  border-collapse: collapse;
+  margin: 0.75em 0;
+  width: 100%;
+}
+.prose-answer th,
+.prose-answer td {
+  border: 1px solid hsl(var(--border));
+  padding: 0.35em 0.6em;
+  text-align: left;
+}
+.prose-answer th {
+  background: hsl(var(--muted));
+  font-weight: 700;
+  font-size: 0.85em;
+}

@@ -1,0 +1,39 @@
+{
+  "id": "q-001",
+  "purpose": "Exemplar of a well-formed run over multiple docs with a categorical topic filter. Use this to eyeball what 'good' looks like when eval scores dip.",
+  "input": {
+    "question": "Which customers raised pricing concerns in the last 12 months?"
+  },
+  "expected_orchestrator_behavior": {
+    "step_1_filter": "Scope should include EVERY doc whose topics_tagged contains 'pricing' AND whose date is within the last 12 months of today. Content-shaped filters are inclusive when unsure (rule 3).",
+    "step_2_rescope": "Should collapse to something like: 'Did the customer raise pricing concerns in this meeting?' — no compound clauses, no time filter (that was applied in step 1).",
+    "step_4_signals": "Each in-scope doc's sub-agent emits a signal only if the body affirmatively surfaces a pricing concern. Docs with no pricing content emit no_signal — NOT a signal with 'raised_pricing_concern: false'.",
+    "step_7_aggregate": "Answer text must cite each customer with an inline [sN] marker. Never invents a customer that isn't in the signals."
+  },
+  "exemplar_signals": [
+    {
+      "signal_index": 1,
+      "scope_of_signal": "mtg-2025-08-14-fintrust-discovery_call",
+      "finding_summary": "Fintrust's VP of Customer Operations pushed back on Voxly's per-minute pricing as too steep for their expected call volume.",
+      "finding_category": "per_minute_pricing_objection",
+      "reference_text_shape": "A verbatim quote from the transcript body where the Fintrust rep says something like 'thirty-two cents a minute is a lot for us — the volume adds up quickly'.",
+      "confidence_range": [0.75, 0.95]
+    },
+    {
+      "signal_index": 2,
+      "scope_of_signal": "mtg-2026-05-07-nimbus_health-churn_save",
+      "finding_summary": "Nimbus Health's CFO framed the annual contract value gap ($490K paid, half unused) as a P&L drag driving churn risk.",
+      "finding_category": "contract_value_underutilization",
+      "reference_text_shape": "A verbatim quote where the Nimbus CFO cites the specific dollar figure and links it to their P&L or ROI conversation.",
+      "confidence_range": [0.8, 0.95]
+    }
+  ],
+  "exemplar_response_text": "Four customers surfaced pricing concerns in the last 12 months:\n\n- **Fintrust** [s1] pushed back on Voxly's per-minute rate during their August discovery call.\n- **Nimbus Health** [s2] framed a $490K unused-contract-value gap as churn-driving pressure on their P&L in May 2026.\n- **Anchorline Logistics** [s3] and **Globex** [s4] raised pricing during their respective calls (see cited quotes).\n\nAcme Corp and Beacon SaaS were NOT among the customers who raised pricing concerns during this window.",
+  "anti_patterns_this_run_should_avoid": [
+    "Emitting a signal with `raised_pricing_concern: false` for docs with no pricing content — use no_signal instead.",
+    "Restating the reference_text verbatim in the response_text — the UI shows it separately.",
+    "Citing customer names not in the metadata of the in-scope docs.",
+    "Missing the [sN] markers on any factual claim in the aggregated answer.",
+    "Fabricating dollar figures or dates not present in either the metadata or the reference_text."
+  ]
+}

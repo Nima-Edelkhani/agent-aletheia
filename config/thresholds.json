@@ -1,0 +1,22 @@
+{
+  "$comment": "Signal filter thresholds and orchestrator timeouts. Referenced by src/core/config.ts.",
+  "accuracy_pass_enforced": true,
+  "ref_fuzzy_distance_cutoff": 80,
+  "confidence_cutoff": 0.5,
+  "timeouts_ms": {
+    "soft_at_percent_done": 90,
+    "soft_timeout_ms": 120000,
+    "hard_timeout_ms": 300000
+  },
+  "models": {
+    "filter": "claude-sonnet-4-6",
+    "rescope": "claude-sonnet-4-6",
+    "subagent": "claude-haiku-4-5-20251001",
+    "accuracy_judge": "claude-haiku-4-5-20251001",
+    "aggregate": "claude-sonnet-4-6"
+  },
+  "context_window": {
+    "before_max_chars": 1000,
+    "after_max_chars": 1000
+  }
+}

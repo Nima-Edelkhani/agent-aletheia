@@ -1,0 +1,178 @@
+[
+  {
+    "id": "q-001",
+    "question": "Which customers raised pricing concerns in the last 12 months?",
+    "expected_scope_ids": [
+      "mtg-2025-08-14-fintrust-discovery_call",
+      "mtg-2026-01-18-globex-churn_save",
+      "mtg-2026-03-03-anchorline-discovery_call",
+      "mtg-2026-05-07-nimbus_health-churn_save"
+    ],
+    "expected_signal_count_min": 4,
+    "expected_answer_must_mention": ["Fintrust", "Globex", "Anchorline Logistics", "Nimbus Health"],
+    "expected_answer_must_not_mention": ["Acme Corp", "Beacon SaaS"]
+  },
+  {
+    "id": "q-002",
+    "question": "Which customers raised pricing concerns since March 2026?",
+    "expected_scope_ids": [
+      "mtg-2026-03-03-anchorline-discovery_call",
+      "mtg-2026-05-07-nimbus_health-churn_save"
+    ],
+    "expected_signal_count_min": 2,
+    "expected_answer_must_mention": ["Anchorline Logistics", "Nimbus Health"],
+    "expected_answer_must_not_mention": ["Fintrust", "Globex", "Acme Corp"]
+  },
+  {
+    "id": "q-003",
+    "question": "Which customers are at churn risk and have mentioned evaluating a competitor?",
+    "expected_scope_ids": [
+      "mtg-2026-01-18-globex-churn_save",
+      "mtg-2026-02-09-beacon_saas-technical_review",
+      "mtg-2026-05-07-nimbus_health-churn_save"
+    ],
+    "expected_signal_count_min": 3,
+    "expected_answer_must_mention": ["Globex", "Beacon SaaS", "Nimbus Health", "Retell", "Bland AI"],
+    "expected_answer_must_not_mention": ["Acme Corp", "Meridian Retail", "Anchorline Logistics"]
+  },
+  {
+    "id": "q-004",
+    "question": "Which customers are hitting integration blockers, and what integrations are involved?",
+    "expected_scope_ids": [
+      "mtg-2026-02-09-beacon_saas-technical_review",
+      "mtg-2025-08-14-fintrust-discovery_call"
+    ],
+    "expected_signal_count_min": 2,
+    "expected_answer_must_mention": ["Beacon SaaS", "Zendesk", "Twilio"],
+    "expected_answer_must_not_mention": ["Acme Corp"]
+  },
+  {
+    "id": "q-005",
+    "question": "Which customers have shown expansion signals in the last 6 months?",
+    "expected_scope_ids": [
+      "mtg-2026-04-15-fintrust-expansion_discussion",
+      "mtg-2026-06-12-meridian_retail-feature_request"
+    ],
+    "expected_signal_count_min": 2,
+    "expected_answer_must_mention": ["Fintrust", "Meridian Retail"],
+    "expected_answer_must_not_mention": ["Globex", "Acme Corp", "Anchorline Logistics"]
+  },
+  {
+    "id": "q-006",
+    "question": "Which enterprise customers have raised concerns or requests in the last 12 months?",
+    "expected_scope_ids": [
+      "mtg-2025-09-22-nimbus_health-feature_request",
+      "mtg-2025-12-10-meridian_retail-qbr",
+      "mtg-2026-05-07-nimbus_health-churn_save",
+      "mtg-2026-06-12-meridian_retail-feature_request"
+    ],
+    "expected_signal_count_min": 4,
+    "expected_answer_must_mention": ["Nimbus Health", "Meridian Retail"],
+    "expected_answer_must_not_mention": ["Fintrust", "Globex", "Acme Corp", "Beacon SaaS", "Anchorline Logistics"]
+  },
+  {
+    "id": "q-007",
+    "question": "Which customers have requested HIPAA compliance or BAA support?",
+    "expected_scope_ids": [
+      "mtg-2025-09-22-nimbus_health-feature_request",
+      "mtg-2026-05-07-nimbus_health-churn_save"
+    ],
+    "expected_signal_count_min": 2,
+    "expected_answer_must_mention": ["Nimbus Health", "HIPAA"],
+    "expected_answer_must_not_mention": ["Meridian Retail", "Globex", "Fintrust", "Acme Corp"]
+  },
+  {
+    "id": "q-008",
+    "question": "Which customers have asked for Spanish language support?",
+    "expected_scope_ids": [
+      "mtg-2026-06-12-meridian_retail-feature_request",
+      "mtg-2025-09-22-nimbus_health-feature_request"
+    ],
+    "expected_signal_count_min": 2,
+    "expected_answer_must_mention": ["Meridian Retail", "Nimbus Health"],
+    "expected_answer_must_not_mention": ["Globex", "Fintrust", "Acme Corp"]
+  },
+  {
+    "id": "q-009",
+    "question": "Which competitors have been named by customers, and by whom?",
+    "expected_scope_ids": [
+      "mtg-2025-08-14-fintrust-discovery_call",
+      "mtg-2026-01-18-globex-churn_save",
+      "mtg-2026-02-09-beacon_saas-technical_review",
+      "mtg-2026-05-07-nimbus_health-churn_save"
+    ],
+    "expected_signal_count_min": 4,
+    "expected_answer_must_mention": ["Retell", "Bland AI", "Globex", "Beacon SaaS", "Nimbus Health", "Fintrust"],
+    "expected_answer_must_not_mention": ["Acme Corp", "Meridian Retail", "Anchorline Logistics"]
+  },
+  {
+    "id": "q-010",
+    "question": "Which customers have discussed voice_agent_v2 in the last 6 months?",
+    "expected_scope_ids": [
+      "mtg-2026-02-09-beacon_saas-technical_review",
+      "mtg-2026-04-15-fintrust-expansion_discussion",
+      "mtg-2026-05-07-nimbus_health-churn_save",
+      "mtg-2026-06-12-meridian_retail-feature_request"
+    ],
+    "expected_signal_count_min": 4,
+    "expected_answer_must_mention": ["Beacon SaaS", "Fintrust", "Nimbus Health", "Meridian Retail", "voice_agent_v2"],
+    "expected_answer_must_not_mention": ["Acme Corp", "Anchorline Logistics", "Globex"]
+  },
+  {
+    "id": "q-011",
+    "question": "Which customers have expressed interest in the analytics addon?",
+    "expected_scope_ids": [
+      "mtg-2025-08-14-fintrust-discovery_call",
+      "mtg-2025-12-10-meridian_retail-qbr",
+      "mtg-2026-01-18-globex-churn_save"
+    ],
+    "expected_signal_count_min": 3,
+    "expected_answer_must_mention": ["Fintrust", "Meridian Retail", "Globex"],
+    "expected_answer_must_not_mention": ["Acme Corp", "Anchorline Logistics"]
+  },
+  {
+    "id": "q-012",
+    "question": "Which customers have raised concerns about accuracy or latency of the voice agent?",
+    "expected_scope_ids": [
+      "mtg-2026-01-18-globex-churn_save",
+      "mtg-2025-12-10-meridian_retail-qbr"
+    ],
+    "expected_signal_count_min": 2,
+    "expected_answer_must_mention": ["Globex", "Meridian Retail"],
+    "expected_answer_must_not_mention": ["Acme Corp", "Anchorline Logistics", "Fintrust"]
+  },
+  {
+    "id": "q-013",
+    "question": "Which customers have discussed upcoming renewals?",
+    "expected_scope_ids": [
+      "mtg-2025-12-10-meridian_retail-qbr",
+      "mtg-2026-01-18-globex-churn_save",
+      "mtg-2026-05-07-nimbus_health-churn_save"
+    ],
+    "expected_signal_count_min": 3,
+    "expected_answer_must_mention": ["Meridian Retail", "Globex", "Nimbus Health"],
+    "expected_answer_must_not_mention": ["Acme Corp", "Anchorline Logistics"]
+  },
+  {
+    "id": "q-014",
+    "question": "Which customers have asked about GDPR compliance or EU data residency?",
+    "expected_scope_ids": [
+      "mtg-2025-09-22-nimbus_health-feature_request",
+      "mtg-2026-04-15-fintrust-expansion_discussion",
+      "mtg-2026-05-07-nimbus_health-churn_save"
+    ],
+    "expected_signal_count_min": 0,
+    "expected_answer_must_mention": [],
+    "expected_answer_must_not_mention": ["Nimbus Health", "Fintrust", "Meridian Retail", "Acme Corp", "Globex", "Beacon SaaS", "Anchorline Logistics"]
+  },
+  {
+    "id": "q-015",
+    "question": "Which customers are in a healthy state with no negative signals in the last 12 months?",
+    "expected_scope_ids": [
+      "mtg-2025-11-05-acme_corp-kickoff"
+    ],
+    "expected_signal_count_min": 1,
+    "expected_answer_must_mention": ["Acme Corp"],
+    "expected_answer_must_not_mention": ["Globex", "Beacon SaaS", "Nimbus Health"]
+  }
+]
