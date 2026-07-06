@@ -2,17 +2,34 @@
   "id": "mtg-2026-03-03-anchorline-discovery_call",
   "metadata": {
     "type": "meeting_transcript",
-    "customer": { "id": "anchorline", "name": "Anchorline Logistics", "tier": "startup" },
+    "customer": {
+      "id": "anchorline",
+      "name": "Anchorline Logistics",
+      "tier": "startup"
+    },
     "date": "2026-03-03",
     "duration_minutes": 34,
     "meeting_type": "discovery_call",
-    "product_discussed": ["voice_agent_v1"],
-    "participants": [
-      { "name": "Priya Raman", "role": "Account Executive", "company": "Voxly" },
-      { "name": "Marcus Fields", "role": "Solutions Engineer", "company": "Voxly" },
-      { "name": "Jamal Osei", "role": "Founder & COO", "company": "Anchorline Logistics" }
+    "product_discussed": [
+      "voice_agent_v1"
     ],
-    "topics_tagged": ["pricing"]
+    "participants": [
+      {
+        "name": "Priya Raman",
+        "role": "Account Executive",
+        "company": "Voxly"
+      },
+      {
+        "name": "Marcus Fields",
+        "role": "Solutions Engineer",
+        "company": "Voxly"
+      },
+      {
+        "name": "Jamal Osei",
+        "role": "Founder & COO",
+        "company": "Anchorline Logistics"
+      }
+    ]
   },
   "body": "Priya Raman: Jamal, thanks for making time. I know as a founder your time is precious. Should we jump right in?\n\nJamal Osei: Please. I've got twenty-five minutes before my next thing.\n\nPriya Raman: Perfect. Tell me about Anchorline. You've got, what, thirty trucks on the road?\n\nJamal Osei: Forty-two now as of last week. We do last-mile freight for e-commerce brands in the Pacific Northwest. Our customer support is mostly drivers calling in — dispatch questions, delivery exceptions, that sort of thing. We're also fielding some end-consumer calls from brands whose customers got our number instead of the brand's number.\n\nMarcus Fields: How many inbound calls a day?\n\nJamal Osei: About two hundred and twenty. Averaging three minutes. My ops manager is drowning and I can't justify hiring another full-time support person yet.\n\nPriya Raman: Got it. And what would success look like for you?\n\nJamal Osei: Anything that takes the driver calls off my ops manager's plate. Driver calls are super repetitive — where's my dispatch, what's the customer address, that kind of thing. Consumer calls I want a human touch on because those are our brand partners' customers.\n\nMarcus Fields: That's a totally reasonable split. We can build a driver-only bot on our startup tier and route consumer calls straight to your ops manager.\n\nJamal Osei: Alright, hit me with pricing. What am I looking at?\n\nPriya Raman: Startup tier is nine cents per minute with a floor of two thousand a month. For your volume — two-twenty calls a day at three minutes, so roughly nineteen thousand eight hundred minutes a month — you'd land right at the floor, two thousand a month. Twenty-four a year.\n\nJamal Osei: Two grand a month. Okay. That is more than I was hoping for, to be honest. I was budgeting fifteen hundred.\n\nPriya Raman: I hear you. The floor is a hard-ish number but let me ask — if we did a six-month pilot at fifteen hundred a month with a step-up to two thousand after the pilot, would that work?\n\nJamal Osei: That would work. What do I lose at the pilot rate?\n\nPriya Raman: You'd be on shared infrastructure, so during peak periods you might see slightly higher latency — talking maybe two hundred milliseconds worse than the standard tier. And you don't get the dedicated Slack channel with our support team, you'd go through the shared community channel.\n\nJamal Osei: I can live with that for six months.\n\nMarcus Fields: Jamal, what telephony are you on today?\n\nJamal Osei: We're on a small provider called Voxbone — I think they're owned by Bandwidth now. Standard SIP.\n\nMarcus Fields: Standard SIP is fine. We can integrate.\n\nJamal Osei: How fast can we go live?\n\nMarcus Fields: For driver-only intents with your volume, honestly three to four weeks. It's a small intent set.\n\nJamal Osei: Alright. Send me the pilot proposal. I want to be up in April.\n\nPriya Raman: I'll have it to you by end of week.\n\nJamal Osei: One more thing — what happens if we grow? We're on track to double our fleet in the next twelve months.\n\nPriya Raman: The pilot rate holds through the six months regardless of volume. If you exceed thirty thousand minutes we'd revisit for the standard-tier transition.\n\nJamal Osei: Fair.\n\nMarcus Fields: Also — as you scale, we can build out more intents. Driver payroll questions, load-board integration, that sort of thing.\n\nJamal Osei: Yeah, payroll questions come up a lot. Every Friday afternoon.\n\nMarcus Fields: We can absolutely handle that. We'd want a read-only connection to your payroll system — do you use Gusto, ADP, something else?\n\nJamal Osei: Gusto.\n\nMarcus Fields: We have a Gusto connector. Read-only, so no risk of us modifying anything.\n\nJamal Osei: Good.\n\nPriya Raman: What about reporting — do you need anything specific?\n\nJamal Osei: Just a weekly digest to my ops manager. Nothing fancy.\n\nPriya Raman: That's built in. You'll set it up during onboarding.\n\nJamal Osei: Perfect. Alright, gotta jump.\n\nMarcus Fields: One quick question — SMS follow-ups. Do you use them today?\n\nJamal Osei: Yeah, our dispatch system sends drivers SMS updates.\n\nMarcus Fields: Good to know. We can plug into that flow too if useful.\n\nJamal Osei: Let's revisit that in the pilot. Great. Gotta jump, thanks folks.\n\nPriya Raman: Thanks Jamal."
 }

@@ -2,18 +2,40 @@
   "id": "mtg-2026-04-15-fintrust-expansion_discussion",
   "metadata": {
     "type": "meeting_transcript",
-    "customer": { "id": "fintrust", "name": "Fintrust", "tier": "growth" },
+    "customer": {
+      "id": "fintrust",
+      "name": "Fintrust",
+      "tier": "growth"
+    },
     "date": "2026-04-15",
     "duration_minutes": 44,
     "meeting_type": "expansion_discussion",
-    "product_discussed": ["voice_agent_v2", "analytics_addon"],
-    "participants": [
-      { "name": "Devon Ricci", "role": "Customer Success Manager", "company": "Voxly" },
-      { "name": "Priya Raman", "role": "Account Executive", "company": "Voxly" },
-      { "name": "Dana Ortiz", "role": "VP Customer Operations", "company": "Fintrust" },
-      { "name": "Alan Weiss", "role": "Head of Collections", "company": "Fintrust" }
+    "product_discussed": [
+      "voice_agent_v2",
+      "analytics_addon"
     ],
-    "topics_tagged": ["expansion", "compliance"]
+    "participants": [
+      {
+        "name": "Devon Ricci",
+        "role": "Customer Success Manager",
+        "company": "Voxly"
+      },
+      {
+        "name": "Priya Raman",
+        "role": "Account Executive",
+        "company": "Voxly"
+      },
+      {
+        "name": "Dana Ortiz",
+        "role": "VP Customer Operations",
+        "company": "Fintrust"
+      },
+      {
+        "name": "Alan Weiss",
+        "role": "Head of Collections",
+        "company": "Fintrust"
+      }
+    ]
   },
   "body": "Devon Ricci: Dana, Alan — welcome. Dana, thanks for bringing Alan into the conversation. I'm excited to hear more about collections.\n\nDana Ortiz: Yeah, so quick context for Priya and Devon — since we went live in November on the servicing side, Voxly is handling about fifty-two percent of our inbound. Our CFO is thrilled. She's the one who pushed us to look at collections next.\n\nAlan Weiss: Right. And collections is a totally different beast. It's outbound-heavy, it's compliance-sensitive — TCPA, FDCPA, state-by-state rules — and it's where we have the biggest cost pressure.\n\nPriya Raman: Alan, before we go too deep — what's the primary outcome you'd want from an AI voice agent in collections?\n\nAlan Weiss: Three things. One, first-touch outreach on accounts thirty to sixty days delinquent, which today we do through a dialer with human agents. That's expensive. Two, inbound calls from customers responding to statements or dunning notices — we want to route those intelligently. Three, promise-to-pay setup — capturing the commitment and pushing it into our servicing system.\n\nDevon Ricci: What's the current cost structure on collections?\n\nAlan Weiss: We spend about eighty thousand a month on collections labor, roughly fifteen people plus a supervisor. If we could deflect thirty to forty percent of first-touch outbound to a bot we'd save meaningfully.\n\nPriya Raman: This is exactly what voice_agent_v2 was built for. V2 has outbound campaign support and a TCPA-compliant consent flow — timing windows, do-not-call list checks, and automatic state-rule enforcement. It went GA in December.\n\nAlan Weiss: How do you handle the state rules? Some states you can call before 8 AM, some you can't, some prohibit certain scripts entirely.\n\nPriya Raman: We maintain a state-rules matrix in the platform. When a campaign is set up you designate the account state per contact, and the system enforces the calling windows and script variants automatically. If a state rule blocks a call, it's just skipped and reported.\n\nAlan Weiss: That's better than what we have today, honestly. Our current dialer requires our supervisor to manually configure state windows every morning.\n\nDana Ortiz: Priya, what does this look like on contract? We're currently at two-forty a year on the two-year term.\n\nPriya Raman: Adding collections would move you to enterprise tier because of the compliance-heavy use case. Enterprise per-minute rate is twelve cents. For your projected collections volume — Alan, what are we talking, twenty thousand outbound attempts a month plus inbound?\n\nAlan Weiss: Roughly. Plus about eight thousand inbound.\n\nPriya Raman: So call it forty-thousand connected minutes on outbound and twenty-four thousand on inbound. At twelve cents that's about seventy-seven hundred a month, so ninety-two K a year on top of your current contract.\n\nDana Ortiz: What about our current per-minute rate on servicing — does that go up when we move to enterprise tier?\n\nPriya Raman: Good question. If you commit to both lines together I hold servicing at your current fourteen cents through the current term and roll everything into a single enterprise contract at renewal.\n\nDana Ortiz: I need to see the numbers written down but that structure seems fair.\n\nAlan Weiss: There's one more thing. We may want a fully custom voice — our brand voice is important in collections and generic TTS sounds cold. Do you offer voice cloning?\n\nPriya Raman: We have a custom_voice add-on. It's a one-time twenty-five thousand dollar setup for a licensed brand voice actor, then it's included in the platform fee. Turnaround is about six weeks.\n\nAlan Weiss: I'll think on that. Not a must-have for launch.\n\nDevon Ricci: Alan, one more thing on the compliance side — we can produce audit-ready call recordings and consent logs on demand. That's already in v2.\n\nAlan Weiss: That's essential for us. Regulators can subpoena those at any time.\n\nDevon Ricci: One more thing — for the outbound side, what's your dialer strategy today? Predictive, power, preview?\n\nAlan Weiss: Power dialer. Predictive was too aggressive for our compliance posture.\n\nPriya Raman: V2's outbound engine defaults to preview mode with an option to go power. You'd never touch predictive unless you wanted to.\n\nAlan Weiss: Good.\n\nDana Ortiz: On the servicing side — we've been really happy with Devon. I want to make sure whoever we get for collections is the same caliber.\n\nDevon Ricci: We can keep me as your CSM across both lines if you want continuity. I've been ramping on collections use cases specifically for this.\n\nDana Ortiz: I'd prefer that.\n\nAlan Weiss: Same. Continuity matters.\n\nPriya Raman: Done. Devon stays on both.\n\nAlan Weiss: What's the expected timeline from contract signature to first live call on collections?\n\nMarcus Fields: For the outbound campaign side, roughly ten weeks. Inbound routing can start earlier, about six weeks.\n\nAlan Weiss: That works for our August launch target.\n\nDana Ortiz: Okay. Priya, send us a formal proposal covering the collections expansion. Include the custom voice option priced separately. We want to make a decision by end of May so we can launch in August.\n\nPriya Raman: You'll have it by April twenty-fifth.\n\nDana Ortiz: Thanks all.\n\nAlan Weiss: Appreciate it.\n\nDevon Ricci: One last logistics thing — I'll set up a kickoff call for the collections implementation the first week of May, assuming signature by end of April.\n\nAlan Weiss: Works. Include our comp lead, Trisha Vaughn.\n\nDevon Ricci: Noted.\n\nDana Ortiz: Talk soon."
 }

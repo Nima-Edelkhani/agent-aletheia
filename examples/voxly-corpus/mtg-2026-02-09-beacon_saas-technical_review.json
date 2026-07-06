@@ -2,18 +2,39 @@
   "id": "mtg-2026-02-09-beacon_saas-technical_review",
   "metadata": {
     "type": "meeting_transcript",
-    "customer": { "id": "beacon_saas", "name": "Beacon SaaS", "tier": "growth" },
+    "customer": {
+      "id": "beacon_saas",
+      "name": "Beacon SaaS",
+      "tier": "growth"
+    },
     "date": "2026-02-09",
     "duration_minutes": 51,
     "meeting_type": "technical_review",
-    "product_discussed": ["voice_agent_v2"],
-    "participants": [
-      { "name": "Marcus Fields", "role": "Solutions Engineer", "company": "Voxly" },
-      { "name": "Elena Sokolova", "role": "Product Manager", "company": "Voxly" },
-      { "name": "Owen Trask", "role": "CTO", "company": "Beacon SaaS" },
-      { "name": "Rina Patel", "role": "Senior Platform Engineer", "company": "Beacon SaaS" }
+    "product_discussed": [
+      "voice_agent_v2"
     ],
-    "topics_tagged": ["integration", "churn_risk"]
+    "participants": [
+      {
+        "name": "Marcus Fields",
+        "role": "Solutions Engineer",
+        "company": "Voxly"
+      },
+      {
+        "name": "Elena Sokolova",
+        "role": "Product Manager",
+        "company": "Voxly"
+      },
+      {
+        "name": "Owen Trask",
+        "role": "CTO",
+        "company": "Beacon SaaS"
+      },
+      {
+        "name": "Rina Patel",
+        "role": "Senior Platform Engineer",
+        "company": "Beacon SaaS"
+      }
+    ]
   },
   "body": "Marcus Fields: Owen, Rina — thanks for the call. Elena's here from product. We wanted to work through the Zendesk and Twilio integration questions from the last email thread. That was a long thread.\n\nOwen Trask: It was. And I'll be straight with you — the fact that we're two months into implementation and still working through these blockers is a concern. If we can't resolve this today or in the next week, I'm going to have to escalate internally about whether we continue.\n\nElena Sokolova: We hear you and we want to get this unblocked. Rina, can you walk us through where you're stuck?\n\nRina Patel: Sure. Two main issues. First, Twilio. We're on Twilio Flex, not standard Twilio Voice. Your docs assume the standard Voice product. Your webhook signature validation fails against Flex's proxy layer. We have to disable signature validation, which our security team won't accept in production.\n\nMarcus Fields: Yeah, we've hit that before. There's a Flex-specific integration path but it's not documented publicly. I can send you the doc after this call — the short version is you configure a Flex plugin that proxies our webhooks with the correct signature.\n\nRina Patel: A Flex plugin. Okay. Do you have any customers running that in production today?\n\nMarcus Fields: Two. I can get you a reference call with one of them if it helps.\n\nOwen Trask: That would help.\n\nRina Patel: Second issue. Zendesk. Your connector reads tickets fine, but when the bot creates a follow-up ticket it doesn't populate our custom fields for product_area and customer_segment. Those are required fields on our side, so every bot-created ticket fails validation and lands in an error queue.\n\nElena Sokolova: Rina, that's a known gap. Custom field mapping on ticket creation is in our next release, targeting March fifteenth. Until then the workaround is a Zendesk automation on your side that sets those fields to a default value if empty.\n\nOwen Trask: That's not a workaround, that's a hack. We'd have every bot-created ticket showing up with a default product_area, which pollutes our reporting.\n\nElena Sokolova: I understand. What if we prioritized the custom field mapping ahead of the March release and got it to you in a private build by end of February?\n\nOwen Trask: End of February would be workable. Can you commit to that in writing?\n\nElena Sokolova: I need to check with my engineering lead but I'm pretty confident. I'll send an email by tomorrow with a firm date.\n\nOwen Trask: Alright. Here's my concern. We signed in October. It's now February. We have not gone live. Our commercial team is asking when we'll see the ROI we sold internally. If we don't have Twilio Flex working and Zendesk custom fields resolved by end of Feb, we're going to look at Bland AI. They reached out last week and their Twilio Flex support is documented.\n\nMarcus Fields: Owen, I hear you. Let me commit to specifics. Twilio Flex plugin doc in your inbox today. Reference call scheduled by end of week. Zendesk custom field mapping in private build by February twenty-eighth. And I'll be on-site with your team the week of the twenty-third for hands-on implementation help.\n\nOwen Trask: On-site would be appreciated. We're in Boston.\n\nMarcus Fields: I'll book flights tonight.\n\nRina Patel: If Marcus is on-site we can knock out the Flex plugin and the intent tuning at the same time.\n\nOwen Trask: Alright. I'll hold off on escalating for two weeks. If by February twenty-third we don't have Zendesk fixed and Twilio working, we need to have a different conversation.\n\nElena Sokolova: Understood. We'll deliver.\n\nRina Patel: One more small thing. Our staging environment doesn't have production data volume. When we do load testing in staging we don't hit the same latency patterns. Any recommendation?\n\nMarcus Fields: We can spin up a production-mirror environment for a week for testing. It's a paid service normally but I'll comp it given the situation.\n\nRina Patel: Perfect.\n\nOwen Trask: I want to be clear about one more thing. When I say Bland AI reached out — they didn't just email. They offered a full migration package including engineering support. So the switching cost isn't as high as it used to be.\n\nElena Sokolova: Noted. We take that seriously.\n\nOwen Trask: One question on the roadmap — where does voice_agent_v2 stand? We signed for v1 originally.\n\nElena Sokolova: V2 is GA. Once your v1 implementation is stable we can migrate you to v2 at no additional cost — it's included in your existing contract. V2 has better handling of interruptions and improved latency, so it's worth the migration.\n\nOwen Trask: When would that migration happen?\n\nElena Sokolova: I'd recommend after you're stable on v1 in production, probably Q2. It's a two-week project.\n\nOwen Trask: Okay. Let's talk about it once we're live.\n\nMarcus Fields: Thank you, Owen. I know this has been rough. We'll turn it around.\n\nRina Patel: Talk soon.\n\nOwen Trask: Marcus, one last thing — send me the reference customer names for the Twilio Flex integration by end of day tomorrow.\n\nMarcus Fields: Will do.\n\nOwen Trask: And Elena, I want the private-build ETA in writing by Wednesday.\n\nElena Sokolova: You'll have it by Tuesday.\n\nOwen Trask: Even better.\n\nRina Patel: What time zone is Marcus flying in from?\n\nMarcus Fields: Pacific. I'll adjust to Boston hours while I'm there.\n\nRina Patel: Cool. I'll book the conference room.\n\nOwen Trask: Alright, we good?\n\nMarcus Fields: We're good.\n\nOwen Trask: Talk soon."
 }

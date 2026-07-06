@@ -1,17 +1,19 @@
 # Aletheia · Evals
 
-This directory holds the evaluation harness, the golden question set, few-shot exemplar traces, and the report output.
+The evaluation harness answers four questions about any Aletheia code change:
+
+1. **Did the filter step pick the right documents?** (recall on `scope_of_exploration`)
+2. **Are the surviving signals real and verifiable?** (fuzz score + substring-in-body check)
+3. **Are the sub-agents emitting quality findings?** (3-check judge pass rates on raw sub-agent output)
+4. **Did each expected meeting actually contribute signals to the final answer?** (signal count by meeting)
 
 ## Files
 
 ```
 evals/
-├── golden-set.json     15 labeled questions with expected scope/signals/answer patterns
-├── run-evals.ts        Harness — computes precision/recall/verifiability/latency/cost
-├── few-shots/          Hand-labeled exemplar traces for the model to read
-│   ├── q-001-pricing-concerns.json
-│   ├── q-006-tier-filter.json
-│   └── q-013-typed-extraction.json
+├── golden-set.json     10 labeled questions with expected scope/answer patterns
+├── run-evals.ts        Harness — computes all metrics + writes reports
+├── few-shots/          Hand-labeled exemplar traces for reference material
 ├── report/             Timestamped JSON (+ optional Markdown) reports
 └── README.md           This file
 ```
@@ -19,12 +21,12 @@ evals/
 ## Running
 
 ```bash
-pnpm evals:smoke                     # 3-question smoke test — ~2 minutes
-pnpm evals                           # full 15-question golden set — ~10 minutes
-pnpm evals -- --question q-001       # run a single question by ID
-pnpm evals -- --report-md            # also write a Markdown report
-pnpm evals -- --min-recall 0.8       # override the recall threshold
-pnpm evals -- --help                 # all flags
+pnpm evals:smoke                        # 3-question smoke test — ~3–5 min
+pnpm evals                              # full 10-question set — ~10 min
+pnpm evals -- --question q-001          # single question by ID
+pnpm evals -- --report-md               # also write a Markdown report
+pnpm evals -- --min-recall 0.85         # override any threshold
+pnpm evals -- --help                    # all flags
 ```
 
 **Exit codes**:
@@ -35,65 +37,86 @@ pnpm evals -- --help                 # all flags
 
 `--question` mode always exits 0; single-question runs are for iteration, not gating.
 
+## Golden-set schema
+
+Each question in `golden-set.json`:
+
+```jsonc
+{
+  "id": "q-004",
+  "question": "Which customers are hitting integration blockers, and what integrations are involved?",
+  "expected_scope_ids": [
+    "mtg-2026-02-09-beacon_saas-technical_review",
+    "mtg-2025-08-14-fintrust-discovery_call"
+  ],
+  "expected_answer_must_mention": ["Beacon SaaS", "Zendesk", "Twilio"],
+  "expected_signals_by_meeting": {
+    "mtg-2026-02-09-beacon_saas-technical_review": 2,
+    "mtg-2025-08-14-fintrust-discovery_call": 1
+  }
+}
+```
+
+- **`expected_scope_ids`** — docs the metadata-only filter step should return. The filter step filters strictly on `date` plus structured metadata fields (`customer`, `tier`, `meeting_type`, `product_discussed`, `participants`) — it never infers topical relevance. Measured as recall. Precision is tracked but not gated (the filter prompt is intentionally inclusive on structured filters).
+- **`expected_answer_must_mention`** — substrings that must appear in `response_text` (case-insensitive). Keyword proxy for "the answer surfaces the right customers/topics".
+- **`expected_signals_by_meeting`** *(optional)* — for each meeting listed, the minimum number of signals with that `scope_of_signal` that must appear in `response.signals`. Catches "the scope was right but the fan-out returned nothing from one of the expected docs" — a failure mode `must_mention` alone can't catch.
+
+**Removed** from the old schema: `expected_signal_count_min` (subsumed by `expected_signals_by_meeting`), `expected_answer_must_not_mention` (rejected as low-signal — the aggregate step only receives in-scope signals, so out-of-scope customers wouldn't be mentioned unless something is severely broken).
+
 ## Thresholds
 
-Default pass/fail thresholds live in `run-evals.ts`:
+All thresholds are **suite-wide aggregates**. Per-question values appear in the report for drill-down but never gate pass/fail — one 5-signal question can't reliably tell you "the judge is passing 80% of the time" but 40 signals across 15 questions can.
 
-| Metric                                       | Default |
-| -------------------------------------------- | ------: |
-| `mean_precision`                             |     0.5 |
-| `mean_recall`                                |     0.7 |
-| `mean_verifiability_fuzz`                    |      85 |
-| `mean_verifiability_substring_hit_rate`      |    0.85 |
+| Metric | Default | CLI override |
+| --- | ---: | --- |
+| `mean_recall` | 0.9 | `--min-recall` |
+| `mean_verifiability_fuzz` | 85 | `--min-fuzz` |
+| `mean_verifiability_substring_hit_rate` | 0.85 | `--min-substring` |
+| `mean_raw_judge_reference_pass_rate` | 0.85 | `--min-raw-ref` |
+| `mean_raw_judge_question_pass_rate` | 0.85 | `--min-raw-q` |
+| `mean_raw_judge_category_pass_rate` | 0.80 | `--min-raw-cat` |
+| `mean_raw_judge_overall_pass_rate` | 0.70 | `--min-raw-overall` |
+| `mean_signal_count_by_meeting_recall` | 0.90 | `--min-meeting-recall` |
 
-Override any of them with `--min-precision`, `--min-recall`, `--min-fuzz`, `--min-substring`. The threshold set used for a given run is echoed into the JSON report so you can reproduce results.
+The threshold set actually used is echoed into the JSON report so you can reproduce results.
 
-## Metrics
+**Precision is tracked but not gated.** Precision measures "did the filter include docs it shouldn't have?" — but the filter prompt is intentionally inclusive ("when unsure, INCLUDE the document"). Gating precision at 0.9 would fight the design. It still appears in every report; if you notice it drifting toward 0.3 that's a sign the filter is over-scoping and worth investigating.
 
-For each question the harness reports:
+## What each metric measures
 
-- **Precision** — fraction of returned `scope_of_exploration` that appears in `expected_scope_ids`.
-- **Recall** — fraction of `expected_scope_ids` covered by the returned scope.
-- **Signal count** vs. `expected_signal_count_min`.
-- **Verifiability (fuzz)** — mean `ref_fuzzy_distance` across signals returned by the run.
-- **Verifiability (substring)** — % of signals whose `reference_text` genuinely appears as a substring in the referenced doc's body. This is the "did we make up the quote?" hard check.
-- **Answer coverage** — presence check against `expected_answer_must_mention` and `expected_answer_must_not_mention`.
-- **Latency (ms)** and **cost (USD)**.
+### Filter step
+- **`mean_recall`** — of the docs the golden set says should be in scope, what fraction did the filter include? Regressions here mean the filter LLM is either misreading a date-window expression or misapplying a structured filter (customer/tier/meeting_type/product_discussed).
+- `mean_precision` — of the docs the filter DID include, what fraction were correct? Not gated but visible.
 
-Aggregates are the arithmetic mean across per-question values (except cost, which sums).
+### Verifiability (on `response.signals` — the filtered set)
+- **`mean_verifiability_fuzz`** — mean `ref_fuzzy_distance` across surviving signals. Drops here mean sub-agents are paraphrasing quotes.
+- **`mean_verifiability_substring_hit_rate`** — fraction of signals whose `reference_text` genuinely appears in the referenced doc's body. This is the "did we make up the quote?" hard check.
+
+### Sub-agent quality (on `trace.raw_signals` — pre-filter)
+
+These tell you whether the sub-agent is emitting good findings BEFORE the accuracy filter drops the failing ones. **Measuring on the filtered set would show 100% pass rates always** (everything there passed by construction).
+
+Weighted across all raw signals from all questions:
+
+- **`mean_raw_judge_reference_pass_rate`** — fraction where the judge confirmed the `finding_summary` follows from the `reference_text` + surrounding context. Regressions mean the sub-agent is paraphrasing or inventing.
+- **`mean_raw_judge_question_pass_rate`** — fraction where the judge confirmed the `finding_summary` addresses the rescoped question. Regressions mean the sub-agent is emitting on-doc-but-off-topic findings.
+- **`mean_raw_judge_category_pass_rate`** — fraction where the judge confirmed the `finding_category` is specific and well-named. Regressions mean the sub-agent is using lazy generic labels (`misc`, `stuff`, `general`).
+- **`mean_raw_judge_overall_pass_rate`** — all three checks passing.
+
+### Answer coverage (on `response.signals`)
+
+- **`mean_signal_count_by_meeting_recall`** — for each expected meeting, does `response.signals` contain at least the required count from that meeting? Score = matched_meetings / total_expected_meetings for each question, then averaged across questions.
+
+This is the tightest bar. It answers **"did the right meeting actually contribute signals to the final answer?"** — the interaction between filter, fan-out, judge, and threshold filter. If the pipeline includes the doc in scope, the sub-agent fires, the judge accepts the signal, and the threshold filter lets it through — this metric passes. If any of those four steps fails, this metric drops.
 
 ## Few-shot exemplars
 
-`few-shots/` holds hand-labeled traces showing what a well-formed run looks like for representative questions. Each file explains:
-
-- What the orchestrator SHOULD do at each step (filter, rescope, fan-out, aggregate).
-- What good signals look like — `finding_summary` phrasing, `finding_category` naming, `reference_text` shape, confidence range.
-- What a good `response_text` reads like, with `[sN]` citations.
-- The **anti-patterns** the run must avoid (invented figures, boolean gate fields, non-cited claims, etc.).
-
-Use these as reference material when:
-
-- The eval scores regress and you need to eyeball what's now different.
-- You're onboarding to the codebase and want to see the pipeline end-to-end.
-- You're extending the orchestrator prompts — mentally check that the new prompt still produces something like the exemplar.
-
-The exemplars are **not** currently injected into the orchestrator prompts. They're documentation. If you want to few-shot the aggregate step, you can read them into `orchestrator.ts:aggregateStep` and append to the system prompt — but consider whether that's worth the token cost first.
-
-## Reports
-
-Every run writes `evals/report/<iso-timestamp>.json`. With `--report-md`, it also writes `.md` alongside. Both files are ignored by git — treat them as run artifacts, not source of truth.
-
-The JSON report includes:
-
-- `mode` — `smoke` / `full` / `single`
-- `aggregates` — mean metrics across the run
-- `thresholds` — the pass/fail bar used for THIS run
-- `passed` / `failures[]` — which thresholds failed
-- `per_question[]` — full per-question breakdown including the full `response_text`
+`few-shots/` holds hand-labeled traces showing what a well-formed run looks like. Reference material; not injected into prompts.
 
 ## When scores drop
 
 1. **Eyeball the failing question** in the JSON report — `response_text` is included in full.
-2. **Compare against the closest few-shot exemplar** — is the shape different? Are `[sN]` markers missing? Are there boolean-gate signals?
-3. **Check the orchestrator trace** — run the same question via `pnpm aletheia ask "..." --debug` to see the full step-by-step. `dropped_signals` in the trace is often the smoking gun.
-4. **Check for prompt drift** — the aggregator and rescope step prompts in `src/core/orchestrator.ts` and the sub-agent prompt in `src/core/subagent.ts` are the levers.
+2. **Look at the meeting-coverage detail** in the Markdown report — which specific expected meeting failed to contribute?
+3. **Compare against the closest few-shot exemplar** — is the shape different? Are `[sN]` markers missing?
+4. **Run the same question via `pnpm aletheia ask "..." --debug`** to see the full step-by-step. `dropped_signals` is often the smoking gun; per-question `raw_judge_*_pass_rate` tells you which check is failing.
+5. **Check for prompt drift** — the aggregator and rescope prompts in `src/core/orchestrator.ts`, the sub-agent prompt in `src/core/subagent.ts`, and the judge prompt in `src/core/subagent.ts:JUDGE_SYSTEM_PROMPT` are the levers.

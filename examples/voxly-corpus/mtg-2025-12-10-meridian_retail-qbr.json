@@ -2,18 +2,40 @@
   "id": "mtg-2025-12-10-meridian_retail-qbr",
   "metadata": {
     "type": "meeting_transcript",
-    "customer": { "id": "meridian_retail", "name": "Meridian Retail", "tier": "enterprise" },
+    "customer": {
+      "id": "meridian_retail",
+      "name": "Meridian Retail",
+      "tier": "enterprise"
+    },
     "date": "2025-12-10",
     "duration_minutes": 62,
     "meeting_type": "qbr",
-    "product_discussed": ["voice_agent_v1", "analytics_addon"],
-    "participants": [
-      { "name": "Devon Ricci", "role": "Customer Success Manager", "company": "Voxly" },
-      { "name": "Priya Raman", "role": "Account Executive", "company": "Voxly" },
-      { "name": "Sarah Kwon", "role": "VP Customer Experience", "company": "Meridian Retail" },
-      { "name": "Bill Chastain", "role": "Director of Contact Center Ops", "company": "Meridian Retail" }
+    "product_discussed": [
+      "voice_agent_v1",
+      "analytics_addon"
     ],
-    "topics_tagged": ["expansion", "renewal"]
+    "participants": [
+      {
+        "name": "Devon Ricci",
+        "role": "Customer Success Manager",
+        "company": "Voxly"
+      },
+      {
+        "name": "Priya Raman",
+        "role": "Account Executive",
+        "company": "Voxly"
+      },
+      {
+        "name": "Sarah Kwon",
+        "role": "VP Customer Experience",
+        "company": "Meridian Retail"
+      },
+      {
+        "name": "Bill Chastain",
+        "role": "Director of Contact Center Ops",
+        "company": "Meridian Retail"
+      }
+    ]
   },
   "body": "Devon Ricci: Alright, Q4 QBR — Sarah, Bill, thanks for making time before the holidays. Let me pull up the scorecard.\n\nSarah Kwon: Please do. And just so you know up front — we're really pleased with the results this quarter. The team internally has been talking about expansion.\n\nDevon Ricci: That's great to hear. So the headline numbers — containment rate hit fifty-three percent in November, up from forty-one in September. Average handle time on contained calls is one minute forty seconds. CSAT is at four point three, versus four point four for your human agents. Effectively parity.\n\nBill Chastain: The AHT number is what really moved the needle for us. Our finance team ran the calculation and we're at about a hundred forty thousand a month in avoided labor cost. Against your fee that's a strong ROI.\n\nPriya Raman: That's fantastic. I want to hear more about the expansion conversation Sarah mentioned.\n\nSarah Kwon: Yeah, so — right now Voxly is running our returns and order status lines. We've been getting pressure from our loyalty program team, they want to pilot Voxly for tier-status inquiries and points redemption. Also, our commercial line — the B2B wholesale channel — has separate call flows and their AHT is brutal, like nine minutes average. They're interested too.\n\nPriya Raman: Both of those sound like natural extensions. Loyalty is probably the faster ramp — the intents are well-defined. B2B wholesale would need a discovery cycle because the flows are more complex.\n\nSarah Kwon: That matches how I'm thinking about it. What would loyalty add to our contract value?\n\nPriya Raman: Depends on volume. What's the monthly call volume on loyalty?\n\nBill Chastain: About eighteen thousand calls a month. Shorter than returns, averaging two minutes.\n\nPriya Raman: So roughly thirty-six thousand minutes. At your enterprise rate that's maybe fifty-five hundred a month, so another sixty-six a year on top of your current two-ninety.\n\nSarah Kwon: That works for our budget. Bill, do you agree loyalty is the right next line?\n\nBill Chastain: Yes. Let's do loyalty in Q1, evaluate B2B in Q2.\n\nDevon Ricci: Perfect. I'll set up a scoping session with the loyalty team in early January. Sarah, who owns that line?\n\nSarah Kwon: That would be Jenny Alvarez, our loyalty program director. I'll intro you both this week.\n\nPriya Raman: While we're on it — your renewal is coming up in March. Should we bundle the loyalty expansion into an early renewal? We can offer better terms if we do it as a package.\n\nSarah Kwon: I'm open to that. What kind of terms?\n\nPriya Raman: If we execute an early renewal with expansion — three-year term — I can hold your current per-minute rate flat through year three and waive the analytics addon fee for year one. The addon alone is eighteen thousand a year.\n\nSarah Kwon: That's compelling. Send me a proposal by mid-January and I'll walk it through our procurement team.\n\nBill Chastain: One thing I want to flag — our peak season, November through January, we had two incidents where latency spiked over two seconds. Not enough to breach SLA but noticeable. Can we get an RCA on those?\n\nDevon Ricci: Yes, absolutely. Our SRE team already investigated — I'll send you the write-up. Short version, it was a regional provider issue on our transcription vendor, and we've since added a fallback path.\n\nBill Chastain: Appreciated. And can we get a formal SLA credit for the two events?\n\nDevon Ricci: Neither breached the SLA thresholds, but as a goodwill gesture I'll apply a five-thousand-dollar credit to your next invoice.\n\nBill Chastain: Fair.\n\nSarah Kwon: One more thing before action items. Our marketing team wants to do a joint case study with Voxly. Are you open to that?\n\nPriya Raman: Absolutely. I'll loop in our marketing lead. Typical turnaround is six weeks for a written case study, or we can do a video testimonial if you prefer.\n\nSarah Kwon: Written first, and if that goes well maybe a video for our user conference in September.\n\nDevon Ricci: Love it.\n\nBill Chastain: What about product roadmap — anything we should be planning around?\n\nPriya Raman: Voice_agent_v2 GA is in December. The big v2 items relevant to you are the outbound campaign engine and multilingual support. If either of those interests you, let's plan a preview session in January.\n\nSarah Kwon: Multilingual might be relevant for our loyalty line. Let's put that on the January agenda.\n\nSarah Kwon: Alright, action items?\n\nDevon Ricci: I send the latency RCA this week. Priya sends the early-renewal-plus-expansion proposal by January fifteenth. Sarah introduces us to Jenny Alvarez for the loyalty scoping. Bill and I schedule the peak-season postmortem in early January.\n\nSarah Kwon: One last question — the Q1 expansion into loyalty. Do we need a separate SOW or does it fold into the existing MSA?\n\nPriya Raman: Folds in via an order form. Much simpler.\n\nSarah Kwon: Good.\n\nBill Chastain: And on the operations side, do I need new headcount for the loyalty ramp?\n\nDevon Ricci: Based on containment projections, no. You may even redeploy one or two agents from loyalty to your escalation team.\n\nBill Chastain: That's the outcome I want.\n\nSarah Kwon: Great QBR. Happy holidays everyone.\n\nPriya Raman: You too.\n\nDevon Ricci: Talk in January."
 }

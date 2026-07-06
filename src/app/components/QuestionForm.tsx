@@ -8,11 +8,6 @@ import { ProgressLog } from "./ProgressLog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowUp, ChevronDown, ChevronRight, Loader2, X } from "lucide-react";
@@ -140,23 +135,22 @@ export function QuestionForm() {
               className="min-h-[80px] w-full resize-y border-0 bg-transparent p-2 text-sm shadow-none focus-visible:ring-0"
             />
             <div className="flex items-center justify-between gap-2 border-t border-neutral-100 pt-2">
-              <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-                <CollapsibleTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 text-xs text-muted"
-                  >
-                    {showAdvanced ? (
-                      <ChevronDown className="mr-1 size-3" />
-                    ) : (
-                      <ChevronRight className="mr-1 size-3" />
-                    )}
-                    Advanced
-                  </Button>
-                </CollapsibleTrigger>
-              </Collapsible>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAdvanced((v) => !v)}
+                aria-expanded={showAdvanced}
+                aria-controls="advanced-schema-panel"
+                className="h-8 text-xs text-muted"
+              >
+                {showAdvanced ? (
+                  <ChevronDown className="mr-1 size-3" />
+                ) : (
+                  <ChevronRight className="mr-1 size-3" />
+                )}
+                Advanced
+              </Button>
               <div className="flex items-center gap-2">
                 {running && (
                   <Button
@@ -194,36 +188,37 @@ export function QuestionForm() {
         </Card>
       </form>
 
-      <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-        <CollapsibleContent>
-          <Card className="border border-neutral-200 bg-neutral-50">
-            <CardContent className="space-y-2 p-4">
-              <Label
-                htmlFor="extract"
-                className="text-xs font-semibold uppercase tracking-wider text-muted"
-              >
-                Typed extraction schema (optional)
-              </Label>
-              <p className="text-xs text-muted">
-                JSON Schema. When provided, every signal will also include a{" "}
-                <code className="rounded bg-neutral-100 px-1 font-mono text-[11px]">
-                  payload
-                </code>{" "}
-                object conforming to this schema. Leave empty for the default flow.
-              </p>
-              <Textarea
-                id="extract"
-                rows={6}
-                value={extractSchema}
-                onChange={(e) => setExtractSchema(e.target.value)}
-                spellCheck={false}
-                placeholder={`{\n  "type": "object",\n  "additionalProperties": false,\n  "required": ["deal_stage", "amount_usd"],\n  "properties": {\n    "deal_stage": {"type": "string"},\n    "amount_usd": {"type": "number"}\n  }\n}`}
-                className="font-mono text-xs"
-              />
-            </CardContent>
-          </Card>
-        </CollapsibleContent>
-      </Collapsible>
+      {showAdvanced && (
+        <Card
+          id="advanced-schema-panel"
+          className="border border-neutral-200 bg-neutral-50"
+        >
+          <CardContent className="space-y-2 p-4">
+            <Label
+              htmlFor="extract"
+              className="text-xs font-semibold uppercase tracking-wider text-muted"
+            >
+              Typed extraction schema (optional)
+            </Label>
+            <p className="text-xs text-muted">
+              JSON Schema. When provided, every signal will also include a{" "}
+              <code className="rounded bg-neutral-100 px-1 font-mono text-[11px]">
+                payload
+              </code>{" "}
+              object conforming to this schema. Leave empty for the default flow.
+            </p>
+            <Textarea
+              id="extract"
+              rows={6}
+              value={extractSchema}
+              onChange={(e) => setExtractSchema(e.target.value)}
+              spellCheck={false}
+              placeholder={`{\n  "type": "object",\n  "additionalProperties": false,\n  "required": ["deal_stage", "amount_usd"],\n  "properties": {\n    "deal_stage": {"type": "string"},\n    "amount_usd": {"type": "number"}\n  }\n}`}
+              className="font-mono text-xs"
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {error && (
         <Alert variant="destructive">

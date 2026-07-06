@@ -230,27 +230,32 @@ rm knowledge-base/*.json && pnpm setup   # restores the 10 Voxly transcripts
 
 ## Evaluation
 
-The repo ships with a **synthetic corpus of 10 Voxly meeting transcripts** (`examples/voxly-corpus/`), a **golden set of 15 questions** (`evals/golden-set.json`), and **few-shot exemplars** (`evals/few-shots/`) that show what a well-formed run looks like end-to-end.
-
-Run the eval suite:
+The repo ships with a **synthetic corpus of 10 Voxly meeting transcripts** (`examples/voxly-corpus/`), a **golden set of 15 hand-labeled questions** (`evals/golden-set.json`), and **few-shot exemplars** (`evals/few-shots/`) that show what a well-formed run looks like end-to-end.
 
 ```bash
-pnpm evals:smoke           # 3-question smoke test (fast, ~2 minutes)
-pnpm evals                 # full 15-question golden set (~10 minutes)
-pnpm evals -- --question q-001    # run a single question by ID
-pnpm evals -- --report-md         # also write a Markdown report
+pnpm evals:smoke               # 3-question smoke test — ~3–5 min
+pnpm evals                     # full 15-question golden set — ~15 min
+pnpm evals -- --question q-004 # single question by ID
+pnpm evals -- --report-md      # also write a Markdown report
+pnpm evals -- --help           # all threshold override flags
 ```
 
-The harness reports:
+The harness measures **four distinct qualities** and gates on suite-wide aggregates for each. Per-question values appear in the report for drill-down but never gate pass/fail on their own.
 
-- **Precision** — fraction of returned `scope_of_exploration` that appears in `expected_scope_ids`.
-- **Recall** — fraction of `expected_scope_ids` covered by the returned scope.
-- **Signal count** vs. `expected_signal_count_min`.
-- **Verifiability** — mean `ref_fuzzy_distance` and % of signals whose `reference_text` genuinely appears in the referenced doc's body (hard check).
-- **Answer coverage** — presence checks against `expected_answer_must_mention` / `must_not_mention`.
-- **Latency** and **cost per question**.
+| Layer | What it tests | Metrics | Default gate |
+| --- | --- | :---: | :---: |
+| **Filter step** | Did the filter pick the right docs? | `mean_recall` (`mean_precision` tracked but not gated) | ≥ 0.9 |
+| **Verifiability** | Are the quotes real? | `mean_verifiability_fuzz` / `..._substring_hit_rate` | ≥ 85 / ≥ 0.85 |
+| **Sub-agent quality** | Are raw sub-agent emissions clean? (weighted across all raw signals in the run) | `mean_raw_judge_reference_pass_rate` / `..._question_` / `..._category_` / `..._overall_` | ≥ 0.85 / ≥ 0.85 / ≥ 0.80 / ≥ 0.70 |
+| **Answer coverage** | Did each expected meeting contribute signals? | `mean_signal_count_by_meeting_recall` | ≥ 0.9 |
 
-Reports are written to `evals/report/<timestamp>.json` (always) and `<timestamp>.md` (with `--report-md`). See [`evals/README.md`](./evals/README.md) for more.
+**Golden-set schema** — each question carries `expected_scope_ids`, `expected_answer_must_mention`, and `expected_signals_by_meeting` (map of doc_id → minimum signal count that must appear in `response.signals`). This last field is the tightest bar because it verifies each expected meeting actually contributed signals to the final answer, catching pipeline breaks that keyword-only checks miss.
+
+**Why judge rates are measured on `trace.raw_signals`** — measuring judge pass rates on `response.signals` would show 100% always (everything there passed by construction). The interesting question is "how often does the sub-agent emit a finding the judge accepts?" — that requires looking at raw emissions before the filter dropped anything.
+
+**Why precision is tracked but not gated** — the filter prompt is intentionally inclusive ("when unsure, INCLUDE"). Gating precision at 0.9 would fight the design. It still appears in every report; if it drifts toward 0.3 that's a sign the filter is over-scoping and worth investigating.
+
+Reports are written to `evals/report/<timestamp>.json` (always) and `<timestamp>.md` (with `--report-md`). See [`evals/README.md`](./evals/README.md) for full metric definitions, threshold overrides, and the `expected_signals` schema.
 
 ---
 

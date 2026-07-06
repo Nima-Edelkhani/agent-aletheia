@@ -2,20 +2,49 @@
   "id": "mtg-2026-05-07-nimbus_health-churn_save",
   "metadata": {
     "type": "meeting_transcript",
-    "customer": { "id": "nimbus_health", "name": "Nimbus Health", "tier": "enterprise" },
+    "customer": {
+      "id": "nimbus_health",
+      "name": "Nimbus Health",
+      "tier": "enterprise"
+    },
     "date": "2026-05-07",
     "duration_minutes": 58,
     "meeting_type": "churn_save",
-    "product_discussed": ["voice_agent_v2"],
-    "participants": [
-      { "name": "Devon Ricci", "role": "Customer Success Manager", "company": "Voxly" },
-      { "name": "Priya Raman", "role": "Account Executive", "company": "Voxly" },
-      { "name": "Elena Sokolova", "role": "Product Manager", "company": "Voxly" },
-      { "name": "Dr. James Whitaker", "role": "Chief Medical Information Officer", "company": "Nimbus Health" },
-      { "name": "Alicia Park", "role": "Compliance Lead", "company": "Nimbus Health" },
-      { "name": "Ron Gardner", "role": "CFO", "company": "Nimbus Health" }
+    "product_discussed": [
+      "voice_agent_v2"
     ],
-    "topics_tagged": ["churn_risk", "competitor_mention", "pricing", "compliance"]
+    "participants": [
+      {
+        "name": "Devon Ricci",
+        "role": "Customer Success Manager",
+        "company": "Voxly"
+      },
+      {
+        "name": "Priya Raman",
+        "role": "Account Executive",
+        "company": "Voxly"
+      },
+      {
+        "name": "Elena Sokolova",
+        "role": "Product Manager",
+        "company": "Voxly"
+      },
+      {
+        "name": "Dr. James Whitaker",
+        "role": "Chief Medical Information Officer",
+        "company": "Nimbus Health"
+      },
+      {
+        "name": "Alicia Park",
+        "role": "Compliance Lead",
+        "company": "Nimbus Health"
+      },
+      {
+        "name": "Ron Gardner",
+        "role": "CFO",
+        "company": "Nimbus Health"
+      }
+    ]
   },
   "body": "Devon Ricci: Dr. Whitaker, Alicia, Ron — thanks for joining. Ron, welcome, first time you've been on one of our calls.\n\nRon Gardner: Yes. I asked James to include me because I'm the one signing the renewal check and I have concerns.\n\nPriya Raman: We want to hear them.\n\nRon Gardner: Alright. We're eleven months into a two-year contract at four-ninety a year. The pediatric consent routing feature that was supposed to ship in Q1 is now targeting Q3. That was a launch blocker for our pediatric line. So half of what I'm paying for isn't live.\n\nDr. James Whitaker: To be fair — the adult line has been running well. Containment is at forty-eight percent, our satisfaction scores are up. The technical execution on the adult side is good.\n\nAlicia Park: Compliance-wise, v2 has been solid. BAA is in place, audit logs are working, no incidents.\n\nRon Gardner: Fine. But that doesn't change the math. We've been running a bake-off against Bland AI for the pediatric line for the last month. Their consent routing is generic but functional. They quoted us three-twenty a year for the pediatric volume alone.\n\nPriya Raman: Ron, let me address this directly. Elena, do you want to speak to where the pediatric feature is?\n\nElena Sokolova: I'll be straight. We under-scoped it. When we committed to Q1 we hadn't done the design work on the multi-consent flow, and once we started building we discovered we needed to redesign our conversation state model to handle third-party consent transitions cleanly. That work is done as of last week. The pediatric feature is now in QA and will ship July fifteenth.\n\nDr. James Whitaker: July fifteenth. You're sure?\n\nElena Sokolova: I'm sure. We have three enterprise customers waiting on this, not just Nimbus. It has the CEO's direct attention.\n\nRon Gardner: Elena, I appreciate the candor. But candor doesn't fix my P&L for the last six months of paying for an unused feature set.\n\nPriya Raman: Ron, here's what I'm authorized to offer. One, a credit of a hundred and twenty thousand dollars — roughly the pediatric-attributable portion of your fees since January. Two, when the pediatric feature ships in July, we run a joint war-room with your team through go-live at no cost. Three, I extend your contract by six months at no additional fee — so effectively you get eighteen months from now for what remains of the original twenty-four.\n\nRon Gardner: The credit and the extension are meaningful.\n\nDr. James Whitaker: Ron, the switching cost to Bland AI on the adult line would be significant. We've built out a whole intent taxonomy and we've integrated with Epic. Moving that is at least four months of work and there's clinical risk in the transition.\n\nRon Gardner: I know. That's the only reason I'm still at the table. Alicia, what's your read on Bland AI's compliance posture?\n\nAlicia Park: Their BAA is thinner than Voxly's. They subcontract inference to a provider that isn't covered under their BAA the way Voxly's is. That's a real risk.\n\nRon Gardner: Alright. Here's what I want. The credit. The extension. And I want a written commitment from Elena — signed — that pediatric ships July fifteenth. If it slips again, I want a termination-for-cause clause with prorated refund.\n\nPriya Raman: I can get you all three. Give me until Monday to walk it through our legal team.\n\nRon Gardner: Monday works.\n\nDr. James Whitaker: Ron, does this resolve the concern for you?\n\nRon Gardner: Provisionally, yes. If Elena hits July fifteenth and the war-room support is real, we stay. If either of those falters we revisit.\n\nDevon Ricci: We understand.\n\nElena Sokolova: Dr. Whitaker, one thing I want to add — I'm personally accountable for the pediatric ship date. I've moved my Q3 planning to make it non-negotiable internally.\n\nDr. James Whitaker: I appreciate the personal accountability. That matters.\n\nAlicia Park: Elena, one clarifying question — the pediatric consent routing, will it be documented for our security board review?\n\nElena Sokolova: Yes. Full architectural documentation, threat model, and PHI flow diagram. I'll have a draft to Alicia by June first.\n\nAlicia Park: Perfect.\n\nRon Gardner: Priya, when you send the amended contract, make sure the termination-for-cause language is explicit. My lawyer is going to redline it and I don't want to iterate three times.\n\nPriya Raman: Understood. I'll have our counsel work with yours directly on that clause.\n\nRon Gardner: Good.\n\nDr. James Whitaker: On the Spanish support piece — is that still on track for Q2 or has that slipped too?\n\nElena Sokolova: Spanish is actually on track. Beta this month, GA September first.\n\nDr. James Whitaker: That's a positive. We'll want that too.\n\nDevon Ricci: I'll flag Spanish in your account notes so we surface it once GA hits.\n\nRon Gardner: Alright. We have what we need for now.\n\nPriya Raman: Thank you all. You'll hear from me Monday.\n\nDr. James Whitaker: Thanks, Priya. Thanks, Devon.\n\nAlicia Park: Thanks all.\n\nRon Gardner: One more thing — I want a monthly executive check-in until pediatric ships. Thirty minutes, me plus your VP of product.\n\nElena Sokolova: I'll set that up. Our VP is Priya Kapoor — she'll be on the first call.\n\nRon Gardner: Perfect.\n\nDevon Ricci: Talk Monday."
 }

@@ -2,18 +2,39 @@
   "id": "mtg-2026-01-18-globex-churn_save",
   "metadata": {
     "type": "meeting_transcript",
-    "customer": { "id": "globex", "name": "Globex", "tier": "growth" },
+    "customer": {
+      "id": "globex",
+      "name": "Globex",
+      "tier": "growth"
+    },
     "date": "2026-01-18",
     "duration_minutes": 47,
     "meeting_type": "churn_save",
-    "product_discussed": ["voice_agent_v1"],
-    "participants": [
-      { "name": "Devon Ricci", "role": "Customer Success Manager", "company": "Voxly" },
-      { "name": "Priya Raman", "role": "Account Executive", "company": "Voxly" },
-      { "name": "Chris Bellamy", "role": "VP Operations", "company": "Globex" },
-      { "name": "Nadia Ferraro", "role": "Support Manager", "company": "Globex" }
+    "product_discussed": [
+      "voice_agent_v1"
     ],
-    "topics_tagged": ["churn_risk", "competitor_mention", "accuracy", "latency"]
+    "participants": [
+      {
+        "name": "Devon Ricci",
+        "role": "Customer Success Manager",
+        "company": "Voxly"
+      },
+      {
+        "name": "Priya Raman",
+        "role": "Account Executive",
+        "company": "Voxly"
+      },
+      {
+        "name": "Chris Bellamy",
+        "role": "VP Operations",
+        "company": "Globex"
+      },
+      {
+        "name": "Nadia Ferraro",
+        "role": "Support Manager",
+        "company": "Globex"
+      }
+    ]
   },
   "body": "Devon Ricci: Chris, Nadia — I want to start by saying thanks for taking this call. I know from your note last week the team is frustrated. I want to hear all of it, unfiltered, and then Priya and I want to talk about what we can do.\n\nChris Bellamy: I appreciate that, Devon. Look, I'll be direct. We've been on Voxly for eight months and the last three months have been rough. Our containment rate peaked at thirty-eight percent in October and it's been sliding — we were at twenty-nine last month. Meanwhile, we're paying you nineteen thousand a month.\n\nNadia Ferraro: And the accuracy on account lookup intents has been degrading. My team is getting escalations where the bot pulls the wrong account number, and that's a huge problem for us. We had one instance in December where the bot confirmed the wrong balance to a customer. That customer complained on Twitter.\n\nDevon Ricci: I saw that ticket. That is not okay and I understand why you're angry.\n\nChris Bellamy: I'll tell you where our head is. We've been evaluating Retell for the last six weeks. Their demo hit forty-four percent containment on our historical data and their per-minute rate is nine cents, versus your fourteen. On paper, it's a no-brainer.\n\nPriya Raman: Chris, I appreciate you being straight with us. Let me try to earn the next thirty days. First, on the accuracy regression — Devon, can you walk through what our engineering team found?\n\nDevon Ricci: Yes. We identified the root cause last week. There was a change in our ASR provider's model in early November that hurt performance on numeric strings — account numbers, dollar amounts. We rolled back to the prior ASR path for accounts flagged as impacted, including Globex, on January eleventh. Nadia, have you seen the accuracy improve in the last week?\n\nNadia Ferraro: Honestly, yes. We haven't had a wrong-account incident since around the twelfth. I hadn't connected that to a fix on your end.\n\nDevon Ricci: That's the fix. And we're moving all growth-tier accounts to the new stable ASR path by end of month.\n\nChris Bellamy: Okay. That's a start. What about the pricing gap versus Retell?\n\nPriya Raman: Here's what I can do. We renegotiate your contract now, mid-term. I move you from fourteen cents to ten and a half cents effective February first. I also give you a service credit of two months' fees for the accuracy incident — that's thirty-eight thousand off your next invoice. In exchange, I'd ask for a twelve-month extension from February.\n\nChris Bellamy: The credit is meaningful. The rate is closer to Retell but still above. What else?\n\nPriya Raman: I'll also throw in the analytics addon for free through the end of the extended term. That's eighteen thousand a year in value.\n\nNadia Ferraro: The analytics addon is what we've been asking for. Chris, that would actually help me a lot — right now I'm exporting call logs into a spreadsheet every Friday.\n\nChris Bellamy: I hear you. Let me be honest — the reason we started looking at Retell isn't just price. It's that we didn't feel like a priority. Six weeks passed on the accuracy issue before we saw traction.\n\nDevon Ricci: That's a fair critique. It shouldn't have taken that long. I'm going to be your escalation path directly — my mobile is going in the shared Slack. If something breaks, I hear about it within an hour, not a week.\n\nChris Bellamy: Alright. Give me until end of week. I need to walk through this with our CFO and I want to be transparent that Retell is still going to send their formal proposal by Wednesday.\n\nPriya Raman: Understood. I'll have our revised MSA in your inbox tomorrow.\n\nNadia Ferraro: One thing on the analytics addon — when would we get access?\n\nDevon Ricci: We can provision it within twenty-four hours of contract signature. I'll have your team trained by end of the following week.\n\nNadia Ferraro: Great.\n\nChris Bellamy: The latency piece — Devon, you didn't mention it, but we've also seen p95 latency creep up over the last two months. Anything we should know?\n\nDevon Ricci: Yes, actually. The ASR path fix should also improve p95. We were seeing about a hundred fifty milliseconds of extra latency on the old path. New path we're at eight-forty p95, versus nine-ninety before.\n\nChris Bellamy: Alright. I'll believe it when I see it in our own numbers.\n\nDevon Ricci: Fair. I'll send you a comparison dashboard so you can watch it real-time.\n\nChris Bellamy: One question — if we do sign the extension and something breaks again, what's my out?\n\nPriya Raman: We can include a performance-guarantee clause. If containment drops below thirty-five percent for two consecutive months, you can terminate with sixty days' notice and no penalty.\n\nChris Bellamy: That would be meaningful. Include that in the MSA.\n\nPriya Raman: Will do.\n\nChris Bellamy: Thanks, both.\n\nDevon Ricci: Thank you, Chris. Really. We're going to earn this back.\n\nNadia Ferraro: Talk soon.\n\nPriya Raman: Chris, one more thing — if it helps, I can arrange a reference call with another growth-tier customer who went through a similar rough patch and stayed with us.\n\nChris Bellamy: Actually, yes. That would help me make the case internally.\n\nPriya Raman: I'll set it up this week.\n\nDevon Ricci: And I'll have our SRE team put out a post-mortem on the ASR incident, publicly available on our status page.\n\nChris Bellamy: That transparency matters.\n\nDevon Ricci: We should have done it sooner. Won't happen that way again.\n\nChris Bellamy: Alright. Talk end of week.\n\nPriya Raman: Thanks Chris.\n\nDevon Ricci: Thanks all."
 }
