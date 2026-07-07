@@ -23,10 +23,10 @@ That checks Node 20+, enables pnpm via corepack, clones the repo, installs deps,
 ```bash
 git clone https://github.com/Nima-Edelkhani/agent-aletheia.git
 cd aletheia
-pnpm install && pnpm setup
+pnpm install && pnpm bootstrap
 ```
 
-`pnpm setup` will:
+`pnpm bootstrap` will:
 
 1. Copy `.env.example` → `.env` (won't overwrite an existing one).
 2. Seed `knowledge-base/` with the sample **Voxly** meeting-transcript corpus so you can ask questions immediately.
@@ -237,7 +237,7 @@ Meeting transcript body here...
 ### Resetting to the sample data
 
 ```bash
-rm knowledge-base/*.json && pnpm setup   # restores the 10 Voxly transcripts
+rm knowledge-base/*.json && pnpm bootstrap   # restores the 10 Voxly transcripts
 ```
 
 ---
@@ -335,9 +335,10 @@ src/
 evals/                        golden-set.json + few-shots/ + run-evals.ts + report/
 examples/voxly-corpus/        Synthetic test corpus (10 meeting transcripts)
 config/thresholds.json        Runtime knobs
-knowledge-base/               Your docs go here (seeded by `pnpm setup`)
+knowledge-base/               Your docs go here (seeded by `pnpm bootstrap`)
 tests/                        Vitest regression tests
-scripts/setup.mjs             `pnpm setup` bootstrap
+scripts/setup.mjs             `pnpm bootstrap` first-run wizard
+scripts/install.sh            One-line `curl … | bash` installer
 ```
 
 ---

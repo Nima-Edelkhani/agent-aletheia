@@ -9,7 +9,7 @@
 #   2. Enable pnpm via corepack.
 #   3. Clone the repo into ./aletheia (or reuse the current dir if it IS the repo).
 #   4. pnpm install.
-#   5. Run pnpm setup, which drops you into the interactive first-run wizard.
+#   5. Run pnpm bootstrap, which drops you into the interactive first-run wizard.
 #
 # Idempotent — safe to rerun. Never touches an existing .env.
 
@@ -101,7 +101,7 @@ echo
 # interactive step won't be reachable. Detect that and fall through to
 # printed next-steps instead of hanging waiting for Enter.
 if [ -t 0 ]; then
-  pnpm setup
+  pnpm bootstrap
 else
   bold "Almost done."
   echo
@@ -112,6 +112,6 @@ else
   dim  "       (get one at https://console.anthropic.com/settings/keys)"; echo
   echo
   echo "  3. Verify + open the web UI:"
-  cyan "       pnpm setup"; echo
+  cyan "       pnpm bootstrap"; echo
   echo
 fi
