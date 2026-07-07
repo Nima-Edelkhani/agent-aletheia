@@ -1,0 +1,8 @@
+# CODEOWNERS — GitHub uses this file to auto-request reviews on PRs.
+#
+# Syntax: <path-pattern>   <owner>[ <owner>...]
+# Later patterns override earlier ones for the same path.
+# See https://docs.github.com/repositories/managing-your-repositorys-settings-and-security/customizing-your-repository/about-code-owners
+#
+# Default owner for everything in the repo.
+* @Nima-Edelkhani
