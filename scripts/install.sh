@@ -97,11 +97,20 @@ green "✓"; echo " Dependencies installed."
 echo
 
 # ── 5. Run setup wizard ──────────────────────────────────────────────────
-# When invoked via `curl ... | bash`, stdin is the pipe, so the setup wizard's
-# interactive step won't be reachable. Detect that and fall through to
-# printed next-steps instead of hanging waiting for Enter.
+# When invoked via `curl ... | bash`, stdin is the curl pipe. We reattach the
+# wizard's stdin to /dev/tty so the interactive Enter-wait still works. If
+# no terminal is available at all (truly headless CI), fall through to the
+# printed next-steps.
 if [ -t 0 ]; then
   pnpm bootstrap
+elif [ -r /dev/tty ]; then
+  echo
+  pnpm bootstrap < /dev/tty
+  echo
+  bold "You are back in the shell you invoked the installer from."; echo
+  echo "  To keep working in the repo directory:"
+  cyan "    cd $REPO_DIR"; echo
+  echo
 else
   bold "Almost done."
   echo
