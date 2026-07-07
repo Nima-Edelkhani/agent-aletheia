@@ -33,7 +33,7 @@ export default function Page() {
         <h1 className="sr-only">Aletheia</h1>
         <pre
           aria-hidden="true"
-          className="overflow-x-auto whitespace-pre font-mono font-bold leading-[1.05] text-ink text-[0.58rem] sm:text-[0.85rem] md:text-[1.15rem] lg:text-[1.5rem]"
+          className="overflow-x-auto whitespace-pre font-mono leading-[1.15] text-ink text-[0.58rem] sm:text-[0.85rem] md:text-[1.15rem] lg:text-[1.5rem]"
         >{BANNER}</pre>
 
         <p className="mt-6 max-w-2xl font-sans text-base leading-snug md:text-lg">
