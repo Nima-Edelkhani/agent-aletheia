@@ -1,5 +1,15 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
+
+// Ctrl+C: exit immediately even if pending fetches to Anthropic haven't
+// resolved. Without this handler Node waits for the event loop to drain,
+// and in-flight SDK requests don't observe SIGINT — the process appears
+// stuck at the terminal for tens of seconds.
+process.on("SIGINT", () => {
+  process.stderr.write("\nInterrupted.\n");
+  // eslint-disable-next-line n/no-process-exit
+  process.exit(130);
+});
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { Command } from "commander";
@@ -35,6 +45,10 @@ program
   )
   .option("--trace", "Also print the orchestrator trace")
   .option(
+    "--show-dropped",
+    "Also render cards for signals that failed the accuracy filter (hidden by default; the count is always shown)",
+  )
+  .option(
     "--debug",
     "Print the entire AletheiaResponse (question + response body + all signals) and trace as JSON to stdout, in addition to the pretty summary",
   )
@@ -46,6 +60,7 @@ program
         scope?: boolean;
         extract?: string;
         trace?: boolean;
+        showDropped?: boolean;
         debug?: boolean;
       },
     ) => {
@@ -71,7 +86,10 @@ program
       // Clear the progress area with a blank line before the final render.
       console.error("");
 
-      renderResponse(response, trace, { scope: opts.scope });
+      renderResponse(response, trace, {
+        scope: opts.scope,
+        showDropped: opts.showDropped || opts.debug,
+      });
 
       if (opts.debug) {
         console.error(c.dim("\n[debug] raw response + trace:"));
@@ -262,7 +280,7 @@ const INNER = WIDTH - 4; // content width inside a card (│ · … · │)
 function renderResponse(
   r: AletheiaResponse,
   trace: OrchestratorTrace,
-  opts: { scope?: boolean },
+  opts: { scope?: boolean; showDropped?: boolean },
 ): void {
   const body = r.response;
   const contributing = body.signals.filter(
@@ -320,25 +338,36 @@ function renderResponse(
   }
 
   // ── § 03 SIGNALS ─────────────────────────────────────────────────
-  if (contributing.length > 0 || dropped.length > 0) {
+  const showDropped = !!opts.showDropped;
+  const anySignalCards = contributing.length > 0 || (showDropped && dropped.length > 0);
+  if (anySignalCards) {
     out.push("");
     out.push(marker("03", "Signals"));
     contributing.forEach((s, i) => {
       out.push("");
       out.push(...renderSignalCard(s, i + 1, thresholds));
     });
-    dropped.forEach((entry, i) => {
-      if (entry.signal.signal_type !== "signal") return;
+    if (showDropped) {
+      dropped.forEach((entry, i) => {
+        if (entry.signal.signal_type !== "signal") return;
+        out.push("");
+        out.push(
+          ...renderSignalCard(
+            entry.signal,
+            contributing.length + i + 1,
+            thresholds,
+            entry.reason,
+          ),
+        );
+      });
+    } else if (dropped.length > 0) {
       out.push("");
       out.push(
-        ...renderSignalCard(
-          entry.signal,
-          contributing.length + i + 1,
-          thresholds,
-          entry.reason,
+        c.dim(
+          `  ${dropped.length} dropped signal(s) hidden — pass --show-dropped to render them.`,
         ),
       );
-    });
+    }
   }
 
   // ── § 04 PERFORMANCE ─────────────────────────────────────────────
@@ -506,11 +535,17 @@ function label(text: string): string {
   return c.dim(text.toUpperCase());
 }
 
+// ANSI "full reset" — prevents color bleed from an unclosed escape inside
+// `content` (common with wrapped colored text) leaking into the trailing
+// border character.
+const RESET = "\x1b[0m";
+
 function row(content: string, border: (s: string) => string): string {
   return (
     border("│") +
     " " +
     padRight(content, INNER) +
+    RESET +
     " " +
     border("│")
   );
@@ -533,6 +568,7 @@ function labelWithTrailing(
     l +
     " ".repeat(Math.max(1, gap)) +
     trailing +
+    RESET +
     " " +
     border("│")
   );
@@ -545,11 +581,13 @@ function headerBorder(
   border: (s: string) => string,
 ): string {
   // ┌── SIGNAL 1 · <doc> ─── <badge> ──┐
+  // Total width = ┌ + ─ + left + filler + right + ─ + ┐ = 4 fixed chars
+  // + variable content. filler must make the sum equal WIDTH exactly.
   const left = " " + c.bold(idLabel) + c.dim(" · ") + c.cyan(doc) + " ";
-  const right = " " + badge + " ";
+  const right = " " + badge + RESET + " ";
   const filler = Math.max(
     2,
-    WIDTH - 2 - visLen(left) - visLen(right),
+    WIDTH - 4 - visLen(left) - visLen(right),
   );
   return (
     border("┌") +

@@ -18,7 +18,7 @@ import { readdir, copyFile, access, mkdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline/promises";
-import { spawn } from "node:child_process";
+import { spawnSync } from "node:child_process";
 
 const ROOT = resolve(fileURLToPath(import.meta.url), "../..");
 const ENV_PATH = join(ROOT, ".env");
@@ -208,29 +208,27 @@ async function offerLaunch(rl) {
   }
 
   // choice === "ui"
-  // Release stdin BEFORE spawning so readline's SIGINT handler doesn't
-  // intercept Ctrl+C — otherwise the dev server can't be killed cleanly.
+  // Fully release the terminal to the child so Ctrl+C works cleanly:
+  //   1. Close readline (drops its SIGINT / stdin listeners)
+  //   2. Strip any residual signal listeners on the parent process
+  //   3. Use spawnSync so the Node event loop is paused entirely while
+  //      pnpm dev runs — nothing on the parent side can intercept
+  //      keyboard signals, and the process group gets Ctrl+C directly.
   rl.close();
+  process.removeAllListeners("SIGINT");
+  process.removeAllListeners("SIGTERM");
   console.error("");
   console.error(c.cyan("Starting pnpm dev — press Ctrl+C to stop."));
-  const child = spawn("pnpm", ["dev"], {
+  const result = spawnSync("pnpm", ["dev"], {
     cwd: ROOT,
     stdio: "inherit",
-    detached: false,
   });
-  const forward = (sig) => {
-    try {
-      child.kill(sig);
-    } catch {
-      /* child already gone */
-    }
-  };
-  process.on("SIGINT", forward);
-  process.on("SIGTERM", forward);
-  const code = await new Promise((res) => child.on("exit", (c) => res(c ?? 0)));
-  process.off("SIGINT", forward);
-  process.off("SIGTERM", forward);
-  process.exit(code);
+  // Exit with the child's status; if it was killed by a signal, exit 130
+  // (the conventional SIGINT exit code) so shells see a clean interrupt.
+  if (result.signal) {
+    process.exit(result.signal === "SIGINT" ? 130 : 1);
+  }
+  process.exit(result.status ?? 0);
 }
 
 function printCliExamples() {
