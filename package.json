@@ -19,13 +19,13 @@
     "name": "Nima Edelkhani"
   },
   "license": "MIT",
-  "homepage": "https://github.com/nimaedelkhani/aletheia#readme",
+  "homepage": "https://github.com/Nima-Edelkhani/agent-aletheia#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nimaedelkhani/aletheia.git"
+    "url": "https://github.com/Nima-Edelkhani/agent-aletheia.git"
   },
   "bugs": {
-    "url": "https://github.com/nimaedelkhani/aletheia/issues"
+    "url": "https://github.com/Nima-Edelkhani/agent-aletheia/issues"
   },
   "engines": {
     "node": ">=20"

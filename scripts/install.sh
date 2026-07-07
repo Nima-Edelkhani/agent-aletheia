@@ -2,7 +2,7 @@
 # Aletheia one-line installer.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/nimaedelkhani/aletheia/main/scripts/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/Nima-Edelkhani/agent-aletheia/main/scripts/install.sh | bash
 #
 # What it does (in order):
 #   1. Verify Node.js >= 20.
@@ -15,7 +15,7 @@
 
 set -euo pipefail
 
-REPO_URL="${ALETHEIA_REPO_URL:-https://github.com/nimaedelkhani/aletheia.git}"
+REPO_URL="${ALETHEIA_REPO_URL:-https://github.com/Nima-Edelkhani/agent-aletheia.git}"
 TARGET_DIR="${ALETHEIA_DIR:-aletheia}"
 
 bold()   { printf "\033[1m%s\033[22m" "$1"; }

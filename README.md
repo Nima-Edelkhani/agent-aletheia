@@ -13,7 +13,7 @@ Created and open-sourced by **Nima Edelkhani** · 2026.
 **One-liner (macOS / Linux / WSL2):**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/nimaedelkhani/aletheia/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Nima-Edelkhani/agent-aletheia/main/scripts/install.sh | bash
 ```
 
 That checks Node 20+, enables pnpm via corepack, clones the repo, installs deps, and drops you into the setup wizard when your terminal is interactive.
@@ -21,7 +21,7 @@ That checks Node 20+, enables pnpm via corepack, clones the repo, installs deps,
 **Manual (any platform):**
 
 ```bash
-git clone https://github.com/nimaedelkhani/aletheia.git
+git clone https://github.com/Nima-Edelkhani/agent-aletheia.git
 cd aletheia
 pnpm install && pnpm setup
 ```
