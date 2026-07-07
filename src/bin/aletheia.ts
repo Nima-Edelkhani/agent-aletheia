@@ -613,11 +613,53 @@ function renderQuoteText(
   // before/after strings often contain embedded newlines from the source
   // transcript; those must not leak into rendered lines or the box breaks.
   const norm = (s: string) => s.replace(/\s+/g, " ").trim();
+
+  // We use tokens for grey (before/after) and underline (ref) to satisfy:
+  //   before + after: dim grey
+  //   ref: white + underline (even across multi-line wraps)
+  const GREY_OPEN = "\x1b[90m";
+  const GREY_CLOSE = "\x1b[39m";
+  const UL_OPEN = "\x1b[4m";
+  const UL_CLOSE = "\x1b[24m";
+
   const composed =
-    (before ? c.grey(norm(before)) + " " : "") +
-    c.emph(norm(ref)) +
-    (after ? " " + c.grey(norm(after)) : "");
-  return wrapAnsi(composed, width);
+    (before ? GREY_OPEN + norm(before) + GREY_CLOSE + " " : "") +
+    UL_OPEN + norm(ref) + UL_CLOSE +
+    (after ? " " + GREY_OPEN + norm(after) + GREY_CLOSE : "");
+
+  const raw = wrapAnsi(composed, width);
+
+  // Post-process: keep grey / underline state alive across wrapped lines
+  // by closing at end of each line and re-opening at the start of the next.
+  // This is what wrapAnsi alone can't do — its split at whitespace boundaries
+  // orphans the open code inherited from the previous line.
+  const OPENERS = { grey: GREY_OPEN, ul: UL_OPEN };
+  const CLOSERS = { grey: GREY_CLOSE, ul: UL_CLOSE };
+  const codeRe = /\x1b\[[0-9;]*m/g;
+
+  const out: string[] = [];
+  let carry: keyof typeof OPENERS | null = null;
+
+  for (const line of raw) {
+    const prefixed = carry ? OPENERS[carry] + line : line;
+
+    // Walk every SGR code to determine what state the line ends in.
+    let state: keyof typeof OPENERS | null = carry;
+    let m: RegExpExecArray | null;
+    codeRe.lastIndex = 0;
+    while ((m = codeRe.exec(prefixed)) !== null) {
+      const code = m[0];
+      if (code === GREY_OPEN) state = "grey";
+      else if (code === UL_OPEN) state = "ul";
+      else if (code === GREY_CLOSE && state === "grey") state = null;
+      else if (code === UL_CLOSE && state === "ul") state = null;
+    }
+
+    const closed = state ? prefixed + CLOSERS[state] : prefixed;
+    carry = state;
+    out.push(closed);
+  }
+  return out;
 }
 
 /* ─── payload value formatter ─── */
