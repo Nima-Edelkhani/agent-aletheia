@@ -34,10 +34,16 @@ export default function Page() {
         <pre
           aria-hidden="true"
           style={{
+            fontFamily:
+              'Menlo, "Cascadia Code", "DejaVu Sans Mono", "Liberation Mono", Consolas, monospace',
             fontFeatureSettings: '"liga" 0, "calt" 0, "clig" 0',
             fontVariantLigatures: "none",
+            fontWeight: 400,
+            lineHeight: 1,
+            letterSpacing: 0,
+            fontStretch: "normal",
           }}
-          className="overflow-x-auto whitespace-pre font-mono font-normal leading-none tracking-normal text-ink text-[0.58rem] sm:text-[0.85rem] md:text-[1.15rem] lg:text-[1.5rem]"
+          className="overflow-x-auto whitespace-pre text-ink text-[0.58rem] sm:text-[0.85rem] md:text-[1.15rem] lg:text-[1.5rem]"
         >{BANNER}</pre>
 
         <p className="mt-6 max-w-2xl font-sans text-base leading-snug md:text-lg">

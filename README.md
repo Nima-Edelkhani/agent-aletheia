@@ -10,29 +10,24 @@ Created and open-sourced by **Nima Edelkhani** · 2026.
 
 ## Quickstart
 
-**One-liner (macOS / Linux / WSL2):**
+Two commands. Pick your own directory, then install and set up:
 
 ```bash
+# 1. Install (into the current, empty directory — no subdir created)
+mkdir my-aletheia && cd my-aletheia
 curl -fsSL https://raw.githubusercontent.com/Nima-Edelkhani/agent-aletheia/main/scripts/install.sh | bash
+
+# 2. Run the interactive setup wizard from the same directory
+pnpm start
 ```
 
-That checks Node 20+, enables pnpm via corepack, clones the repo, installs deps, and drops you into the setup wizard when your terminal is interactive.
-
-**Manual (any platform):**
-
-```bash
-git clone https://github.com/Nima-Edelkhani/agent-aletheia.git
-cd aletheia
-pnpm install && pnpm bootstrap
-```
-
-`pnpm bootstrap` will:
+`pnpm start` will:
 
 1. Copy `.env.example` → `.env` (won't overwrite an existing one).
 2. Seed `knowledge-base/` with the sample **Voxly** meeting-transcript corpus so you can ask questions immediately.
-3. Ask you to add your Anthropic API key to `.env` yourself — the wizard never accepts the key via prompt, it stays in `.env` only.
+3. Ask you to add your Anthropic API key to `.env` yourself — the wizard never accepts the key via a prompt, it stays in `.env` only.
 4. Verify the key with a 1-token test call.
-5. Offer to launch the web UI.
+5. Offer to launch the web UI. If you say no, it prints CLI examples.
 
 The `.env` line format is exactly:
 
@@ -42,7 +37,7 @@ ANTHROPIC_API_KEY=sk-ant-your-key-here
 
 Get a key at https://console.anthropic.com/settings/keys.
 
-Once setup is done:
+Once setup is done, both entry points work from the same directory:
 
 ```bash
 # CLI
@@ -51,6 +46,15 @@ pnpm aletheia ask "What did customers discuss in the past month?"
 # Web UI
 pnpm dev
 # open http://localhost:3000
+```
+
+**Manual install** (if you'd rather not use the curl one-liner):
+
+```bash
+git clone https://github.com/Nima-Edelkhani/agent-aletheia.git my-aletheia
+cd my-aletheia
+pnpm install
+pnpm start
 ```
 
 **Prereqs**: Node 20+, pnpm 9+ (installed automatically by the one-liner via corepack), an Anthropic API key. That's the entire dependency footprint.
@@ -235,7 +239,7 @@ Meeting transcript body here...
 ### Resetting to the sample data
 
 ```bash
-rm knowledge-base/*.json && pnpm bootstrap   # restores the 10 Voxly transcripts
+rm knowledge-base/*.json && pnpm start   # restores the 10 Voxly transcripts
 ```
 
 ---
@@ -333,9 +337,9 @@ src/
 evals/                        golden-set.json + few-shots/ + run-evals.ts + report/
 examples/voxly-corpus/        Synthetic test corpus (10 meeting transcripts)
 config/thresholds.json        Runtime knobs
-knowledge-base/               Your docs go here (seeded by `pnpm bootstrap`)
+knowledge-base/               Your docs go here (seeded by `pnpm start`)
 tests/                        Vitest regression tests
-scripts/setup.mjs             `pnpm bootstrap` first-run wizard
+scripts/setup.mjs             `pnpm start` first-run wizard
 scripts/install.sh            One-line `curl … | bash` installer
 ```
 

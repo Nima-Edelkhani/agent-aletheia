@@ -34,8 +34,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "bootstrap": "node scripts/setup.mjs",
+    "start": "node scripts/setup.mjs",
+    "serve": "next start",
     "aletheia": "tsx src/bin/aletheia.ts",
     "evals": "tsx evals/run-evals.ts",
     "evals:smoke": "tsx evals/run-evals.ts --smoke",

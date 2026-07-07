@@ -176,25 +176,48 @@ async function interactiveKeyWait(rl) {
 
 async function offerLaunch(rl) {
   console.error("");
-  const answer = (
-    await rl.question(`Launch the web UI now? ${c.dim("[Y/n]")} `)
-  )
-    .trim()
-    .toLowerCase();
-  if (answer && answer !== "y" && answer !== "yes") {
+  console.error(c.bold("How would you like to run Aletheia?"));
+  console.error(c.dim("─".repeat(36)));
+  console.error("");
+  console.error(`  ${c.cyan("[1]")} ${c.bold("Web UI")}   ${c.dim("— launches pnpm dev, opens http://localhost:3000")}`);
+  console.error(`  ${c.cyan("[2]")} ${c.bold("CLI")}      ${c.dim("— prints example commands you can copy-paste")}`);
+  console.error(`  ${c.cyan("[q]")} Quit`);
+  console.error("");
+
+  let choice = "";
+  while (true) {
+    const raw = (await rl.question(c.dim("Choose 1, 2, or q: "))).trim().toLowerCase();
+    if (raw === "1" || raw === "ui" || raw === "web") { choice = "ui"; break; }
+    if (raw === "2" || raw === "cli") { choice = "cli"; break; }
+    if (raw === "q" || raw === "quit" || raw === "exit") { choice = "quit"; break; }
+    console.error(c.yellow("  ! Please enter 1, 2, or q."));
+  }
+
+  if (choice === "cli") {
     printCliExamples();
     return;
   }
+  if (choice === "quit") {
+    console.error("");
+    console.error(c.dim("You can start Aletheia later with:"));
+    console.error(`  ${c.cyan("pnpm start")}  ${c.dim("— re-open this menu")}`);
+    console.error(`  ${c.cyan("pnpm dev")}    ${c.dim("— jump straight to the web UI")}`);
+    console.error(`  ${c.cyan("pnpm aletheia ask \"…\"")}  ${c.dim("— run a single query from the CLI")}`);
+    console.error("");
+    return;
+  }
+
+  // choice === "ui"
   // Release stdin BEFORE spawning so readline's SIGINT handler doesn't
   // intercept Ctrl+C — otherwise the dev server can't be killed cleanly.
   rl.close();
+  console.error("");
   console.error(c.cyan("Starting pnpm dev — press Ctrl+C to stop."));
   const child = spawn("pnpm", ["dev"], {
     cwd: ROOT,
     stdio: "inherit",
     detached: false,
   });
-  // Forward parent-level signals to the child, then let both die together.
   const forward = (sig) => {
     try {
       child.kill(sig);
@@ -314,13 +337,8 @@ async function main() {
     return;
   }
 
-  const rl = rlFor();
-  try {
-    await interactiveKeyWait(rl);
-    await offerLaunch(rl);
-  } finally {
-    rl.close();
-  }
+  await interactiveKeyWait(rlFor());
+  await offerLaunch(rlFor());
 }
 
 let _rl;
@@ -329,7 +347,13 @@ function rlFor() {
   return _rl;
 }
 
-main().catch((err) => {
-  console.error("Setup failed:", err);
-  process.exit(1);
-});
+main()
+  .catch((err) => {
+    console.error("Setup failed:", err);
+    process.exitCode = 1;
+  })
+  .finally(() => {
+    // Close readline unconditionally so stdin releases and Node exits
+    // instead of hanging at the terminal after the wizard finishes.
+    if (_rl) _rl.close();
+  });
