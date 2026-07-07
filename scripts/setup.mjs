@@ -214,6 +214,21 @@ async function offerLaunch(rl) {
   // the terminal's foreground process group with no intermediary, so Ctrl+C
   // hits it directly and shuts it down cleanly.
   rl.close();
+
+  // CRITICAL: readline puts the TTY into raw mode while active and is meant
+  // to restore it on close. In practice Node sometimes leaves stdin in raw
+  // mode, which means the terminal driver treats Ctrl+C as a literal 0x03
+  // byte instead of firing SIGINT — the user hits Ctrl+C and sees "^C"
+  // echoed while the dev server keeps running. Force the TTY back to
+  // cooked (canonical) mode before handing control to next dev.
+  if (process.stdin.isTTY) {
+    try {
+      process.stdin.setRawMode(false);
+    } catch {
+      /* not fatal — best effort */
+    }
+  }
+
   process.removeAllListeners("SIGINT");
   process.removeAllListeners("SIGTERM");
   const nextBin = join(ROOT, "node_modules", ".bin", "next");
