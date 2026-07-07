@@ -181,14 +181,84 @@ async function offerLaunch(rl) {
   )
     .trim()
     .toLowerCase();
-  if (answer && answer !== "y" && answer !== "yes") return;
+  if (answer && answer !== "y" && answer !== "yes") {
+    printCliExamples();
+    return;
+  }
+  // Release stdin BEFORE spawning so readline's SIGINT handler doesn't
+  // intercept Ctrl+C — otherwise the dev server can't be killed cleanly.
+  rl.close();
   console.error(c.cyan("Starting pnpm dev — press Ctrl+C to stop."));
   const child = spawn("pnpm", ["dev"], {
     cwd: ROOT,
     stdio: "inherit",
     detached: false,
   });
-  await new Promise((res) => child.on("exit", res));
+  // Forward parent-level signals to the child, then let both die together.
+  const forward = (sig) => {
+    try {
+      child.kill(sig);
+    } catch {
+      /* child already gone */
+    }
+  };
+  process.on("SIGINT", forward);
+  process.on("SIGTERM", forward);
+  const code = await new Promise((res) => child.on("exit", (c) => res(c ?? 0)));
+  process.off("SIGINT", forward);
+  process.off("SIGTERM", forward);
+  process.exit(code);
+}
+
+function printCliExamples() {
+  console.error("");
+  console.error(c.bold("CLI quickstart"));
+  console.error(c.dim("─".repeat(14)));
+  console.error("");
+  console.error(c.dim("Ask a question against the seeded Voxly corpus:"));
+  console.error(
+    `  ${c.cyan("pnpm aletheia ask")} ${c.dim(
+      '"What did customers discuss in the past month?"',
+    )}`,
+  );
+  console.error(
+    `  ${c.cyan("pnpm aletheia ask")} ${c.dim(
+      '"Which customers raised pricing concerns in the past 3 months?"',
+    )}`,
+  );
+  console.error(
+    `  ${c.cyan("pnpm aletheia ask")} ${c.dim(
+      '"What has Nimbus Health discussed across their meetings?"',
+    )}`,
+  );
+  console.error("");
+  console.error(c.dim("List every doc in the knowledge base:"));
+  console.error(`  ${c.cyan("pnpm aletheia list-docs")}`);
+  console.error("");
+  console.error(c.dim("Handy flags:"));
+  console.error(
+    `  ${c.dim("--scope")}      ${c.dim("print every doc ID the filter step selected")}`,
+  );
+  console.error(
+    `  ${c.dim("--expand")}     ${c.dim("render each signal as a full card")}`,
+  );
+  console.error(
+    `  ${c.dim("--extract '<schema>'")} ${c.dim(
+      "typed extraction — every signal also fills a payload matching the schema",
+    )}`,
+  );
+  console.error(
+    `  ${c.dim("--out <path>")} ${c.dim("write the full response + trace JSON to disk")}`,
+  );
+  console.error("");
+  console.error(
+    `${c.dim("Full flag list:")} ${c.cyan("pnpm aletheia ask --help")}`,
+  );
+  console.error("");
+  console.error(
+    `${c.dim("Later, launch the web UI anytime with:")} ${c.cyan("pnpm dev")}`,
+  );
+  console.error("");
 }
 
 function printNextSteps(keyOk) {
