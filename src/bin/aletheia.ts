@@ -1,12 +1,23 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
 
-// Ctrl+C: exit immediately even if pending fetches to Anthropic haven't
-// resolved. Without this handler Node waits for the event loop to drain,
-// and in-flight SDK requests don't observe SIGINT — the process appears
-// stuck at the terminal for tens of seconds.
+// Ctrl+C: exit immediately, no matter what async work is pending. First
+// press does a graceful process.exit(130) but arms a 200ms fallback that
+// SIGKILLs the current process — this covers the case where in-flight
+// Anthropic fetches hold the event loop open and process.exit stalls.
+// Second press within the 200ms fires SIGKILL immediately.
+let sigintFired = false;
 process.on("SIGINT", () => {
+  if (sigintFired) {
+    process.kill(process.pid, "SIGKILL");
+    return;
+  }
+  sigintFired = true;
   process.stderr.write("\nInterrupted.\n");
+  setTimeout(() => {
+    // Reached only if process.exit failed to terminate the process.
+    process.kill(process.pid, "SIGKILL");
+  }, 200).unref();
   // eslint-disable-next-line n/no-process-exit
   process.exit(130);
 });
@@ -105,6 +116,12 @@ program
         await writeFile(outPath, JSON.stringify({ response, trace }, null, 2), "utf8");
         console.error(c.dim(`Wrote ${outPath}`));
       }
+
+      // Exit immediately. The Anthropic SDK's keep-alive HTTP agent holds
+      // the event loop open for ~30s after the last request otherwise, so
+      // the prompt hangs even though our work is done.
+      // eslint-disable-next-line n/no-process-exit
+      process.exit(0);
     },
   );
 

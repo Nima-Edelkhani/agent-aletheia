@@ -208,23 +208,21 @@ async function offerLaunch(rl) {
   }
 
   // choice === "ui"
-  // Fully release the terminal to the child so Ctrl+C works cleanly:
-  //   1. Close readline (drops its SIGINT / stdin listeners)
-  //   2. Strip any residual signal listeners on the parent process
-  //   3. Use spawnSync so the Node event loop is paused entirely while
-  //      pnpm dev runs — nothing on the parent side can intercept
-  //      keyboard signals, and the process group gets Ctrl+C directly.
+  // Bypass pnpm entirely — pnpm 11 does not reliably forward SIGINT to its
+  // child, so `spawnSync("pnpm", ["dev"])` leaves the dev server unkillable
+  // via Ctrl+C. Running the local `next` binary directly puts next dev in
+  // the terminal's foreground process group with no intermediary, so Ctrl+C
+  // hits it directly and shuts it down cleanly.
   rl.close();
   process.removeAllListeners("SIGINT");
   process.removeAllListeners("SIGTERM");
+  const nextBin = join(ROOT, "node_modules", ".bin", "next");
   console.error("");
-  console.error(c.cyan("Starting pnpm dev — press Ctrl+C to stop."));
-  const result = spawnSync("pnpm", ["dev"], {
+  console.error(c.cyan("Starting the dev server — press Ctrl+C to stop."));
+  const result = spawnSync(nextBin, ["dev"], {
     cwd: ROOT,
     stdio: "inherit",
   });
-  // Exit with the child's status; if it was killed by a signal, exit 130
-  // (the conventional SIGINT exit code) so shells see a clean interrupt.
   if (result.signal) {
     process.exit(result.signal === "SIGINT" ? 130 : 1);
   }
