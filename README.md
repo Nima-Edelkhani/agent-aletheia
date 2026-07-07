@@ -57,7 +57,7 @@ pnpm install
 pnpm start
 ```
 
-**Prereqs**: Node 20+, pnpm 9+ (installed automatically by the one-liner via corepack), an Anthropic API key. That's the entire dependency footprint.
+**Prereqs**: Node 22.13+, pnpm 11+ (installed automatically by the one-liner via corepack), an Anthropic API key. That's the entire dependency footprint.
 
 ---
 
@@ -347,7 +347,7 @@ scripts/install.sh            One-line `curl … | bash` installer
 
 ## Tech stack
 
-- **TypeScript 5** on Node 20+, pnpm.
+- **TypeScript 5** on Node 22+, pnpm.
 - **Claude Agent SDK** (`@anthropic-ai/claude-agent-sdk`) for sub-agent orchestration; **Anthropic SDK** for the orchestrator's LLM calls.
 - **Zod** for MCP tool input shapes; **Ajv** for JSON Schema validation of extracted payloads.
 - **fastest-levenshtein** for fuzzball's partial-ratio window scan.

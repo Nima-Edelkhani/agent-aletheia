@@ -29,16 +29,16 @@ echo
 # -- 1. Node.js check --------------------------------------------------
 if ! command -v node >/dev/null 2>&1; then
   red "x Node.js not found."; echo
-  echo "  Install Node 20+ first:"
+  echo "  Install Node 22+ first:"
   echo "    macOS:   brew install node"
   echo "    Linux:   https://github.com/nvm-sh/nvm#installing-and-updating"
   echo "    Windows: https://nodejs.org/en/download"
   exit 1
 fi
 NODE_MAJOR="$(node -v | sed -E 's/^v([0-9]+).*/\1/')"
-if [ "$NODE_MAJOR" -lt 20 ]; then
-  red "x Node.js 20+ required (found $(node -v))."; echo
-  echo "  Upgrade Node and re-run this installer."
+if [ "$NODE_MAJOR" -lt 22 ]; then
+  red "x Node.js 22+ required (found $(node -v))."; echo
+  echo "  pnpm 11.5+ requires Node 22.13 or newer. Upgrade Node and re-run."
   exit 1
 fi
 green "OK"; echo " Node $(node -v) detected."
