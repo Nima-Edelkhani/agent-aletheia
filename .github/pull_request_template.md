@@ -13,7 +13,7 @@
 - [ ] `pnpm typecheck`
 - [ ] `pnpm test`
 - [ ] Manually smoke-tested via `pnpm aletheia ask "…"` (attach output if UI-shaped)
-- [ ] If you changed the signal data model, PRD.md + README.md's Signal shape table are updated
+- [ ] If you changed the signal data model, README.md's Signal shape table is updated
 - [ ] If you added an orchestrator step or `ProgressEvent`, the corresponding test file exists
 
 ## Notes for the reviewer

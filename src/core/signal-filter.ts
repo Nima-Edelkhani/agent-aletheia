@@ -15,7 +15,7 @@ export interface DroppedSignalEntry {
  * assertions, and the aggregator uses them to see what was searched.
  *
  * Returns:
- *   - `keptSignals`: what makes it into `response.signals` (PRD contract).
+ *   - `keptSignals`: what makes it into `response.signals`.
  *   - `droppedSignals`: preserved for the trace so `--debug` can show them.
  *   - `filteringReasoning`: human-readable explanation of what was dropped
  *      and why. Fed into `response.filtering_reasoning`.

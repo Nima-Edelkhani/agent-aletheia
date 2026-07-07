@@ -45,8 +45,8 @@ export function ResponseView({ result }: { result: AskResult }) {
 
   const contributingSignals = r.signals.filter((s) => s.signal_type === "signal");
   const noSignalSignals = r.signals.filter((s) => s.signal_type === "no-signal");
-  // Dropped signals live on the trace — kept out of response.signals per
-  // the PRD contract. They're visualized here for transparency.
+  // Dropped signals live on the trace — kept out of response.signals.
+  // Visualized here for transparency.
   const droppedEntries = result.trace.dropped_signals.filter(
     (d) => d.signal.signal_type === "signal",
   );

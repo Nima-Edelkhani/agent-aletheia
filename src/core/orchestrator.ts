@@ -34,7 +34,7 @@ export interface OrchestratorTrace {
   /**
    * Signals emitted by sub-agents that were dropped in step 6 by threshold
    * filtering (accuracy_pass or ref_fuzzy_distance). Kept out of
-   * `response.signals` to honor the PRD contract, but surfaced here so
+   * `response.signals` (which is the public shape), but surfaced here so
    * `--debug` mode can show the model's actual output.
    */
   dropped_signals: DroppedSignalEntry[];

@@ -72,8 +72,6 @@ Two-layer architecture:
 - **Orchestrator** (`src/core/orchestrator.ts`) — the 5-step loop above.
 - **Per-doc sub-agent** (`src/core/subagent.ts`) — single Claude Agent SDK `query()` per doc with a custom in-process MCP tool that forces structured output. Affirmative-only contract: emits a signal only when the doc positively answers the rescoped question. Emits `no_signal` otherwise. Never emits a negative-payload "signal".
 
-See [`PRD.md`](./PRD.md) for the original spec and [`execution_plan.md`](./execution_plan.md) for the build plan.
-
 ---
 
 ## Signal shape
@@ -382,7 +380,7 @@ If you find something that looks like a vulnerability, please open a private sec
 PRs welcome. Please:
 
 1. Run `pnpm ci` before opening a PR.
-2. If you change the signal data model, update the corresponding fields in `PRD.md` and `README.md` (this file's Signal shape table).
+2. If you change the signal data model, update this file's Signal shape table.
 3. If you add a new orchestrator step or `ProgressEvent`, extend the corresponding test file (or add a sibling one) with a fixture for the new event.
 
 Full guidance in [`CONTRIBUTING.md`](./CONTRIBUTING.md).

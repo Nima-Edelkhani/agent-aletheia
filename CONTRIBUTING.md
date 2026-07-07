@@ -13,7 +13,7 @@ Thanks for your interest. Aletheia is a small, focused project — I welcome con
    - `listMetadata()` never leaks the `body` field.
    - Sub-agents see ONE doc's metadata + body, never any other doc's.
    - The aggregate step's answer text carries an inline `[sN]` marker on every factual claim.
-5. **Update docs together** — if you change the signal data model, update `PRD.md` AND the Signal shape table in `README.md` in the same PR.
+5. **Update docs together** — if you change the signal data model, update the Signal shape table in `README.md` in the same PR.
 
 ## Local setup
 

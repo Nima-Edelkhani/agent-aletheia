@@ -1,11 +1,10 @@
 /**
- * Data model — mirrors PRD.md lines 24–66 with two refinements:
- *   - `finding_summary` and `finding_category` are first-class required fields
- *     on every emitted signal (see design discussion 2026-07-02).
- *   - `payload_format` is null by default and only populated when the caller
- *     of `ask()` passes a `specifiedFindingFormat` schema for typed extraction.
- * Field names are preserved verbatim (snake_case, hyphenated literals) so the
- * emitted JSON matches the PRD contract where applicable.
+ * Data model for the Aletheia response.
+ *
+ * `finding_summary` and `finding_category` are first-class required fields
+ * on every emitted signal. `payload_format` is null by default and only
+ * populated when the caller of `ask()` passes a `specifiedFindingFormat`
+ * schema for typed extraction.
  */
 
 export type PayloadFormat = Record<string, unknown>;
