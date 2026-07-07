@@ -234,6 +234,11 @@ async function offerLaunch(rl) {
   const nextBin = join(ROOT, "node_modules", ".bin", "next");
   console.error("");
   console.error(c.cyan("Starting the dev server — press Ctrl+C to stop."));
+  console.error(
+    c.dim("  (If Ctrl+C won't kill it, open another terminal and run: ") +
+      c.cyan("pnpm kill") +
+      c.dim(")"),
+  );
   const result = spawnSync(nextBin, ["dev"], {
     cwd: ROOT,
     stdio: "inherit",

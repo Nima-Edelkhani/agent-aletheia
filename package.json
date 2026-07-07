@@ -35,6 +35,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "node scripts/setup.mjs",
+    "kill": "node scripts/kill.mjs",
     "serve": "next start",
     "aletheia": "tsx src/bin/aletheia.ts",
     "evals": "tsx evals/run-evals.ts",
