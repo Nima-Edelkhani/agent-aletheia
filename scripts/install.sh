@@ -57,7 +57,7 @@ if ! command -v pnpm >/dev/null 2>&1; then
     echo "    npm install -g corepack"
     exit 1
   fi
-  echo "· Enabling pnpm via corepack…"
+  echo "· Enabling pnpm via corepack..."
   corepack enable >/dev/null 2>&1 || true
   corepack prepare pnpm@latest --activate >/dev/null 2>&1 || true
 fi
@@ -82,7 +82,7 @@ else
       echo "  Install git and re-run this installer."
       exit 1
     fi
-    echo "· Cloning $REPO_URL into $TARGET_DIR…"
+    echo "· Cloning $REPO_URL into $TARGET_DIR..."
     git clone --quiet "$REPO_URL" "$TARGET_DIR"
     REPO_DIR="$TARGET_DIR"
     green "✓"; echo " Cloned."
@@ -91,13 +91,13 @@ fi
 cd "$REPO_DIR"
 
 # ── 4. Install dependencies ──────────────────────────────────────────────
-echo "· Installing dependencies (pnpm install)…"
+echo "· Installing dependencies (pnpm install)..."
 pnpm install --silent
 green "✓"; echo " Dependencies installed."
 echo
 
 # ── 5. Run setup wizard ──────────────────────────────────────────────────
-# When invoked via `curl … | bash`, stdin is the pipe, so the setup wizard's
+# When invoked via `curl ... | bash`, stdin is the pipe, so the setup wizard's
 # interactive step won't be reachable. Detect that and fall through to
 # printed next-steps instead of hanging waiting for Enter.
 if [ -t 0 ]; then
