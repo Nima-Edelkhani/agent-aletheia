@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import { loadDoc } from "./knowledge-base";
 import { EMIT_SIGNALS_TOOL, makeEmitSignalsServer } from "./mcp/emit-signals";
 import {
   extractContext,
@@ -17,6 +16,7 @@ import type {
   Signal,
   SignalNoSignal,
   SignalSignal,
+  StoredDoc,
   SubagentResult,
 } from "./types";
 
@@ -105,11 +105,17 @@ interface RunOptions {
   specifiedFindingFormat: PayloadFormat | null;
   model: string;
   config: AletheiaConfig;
+  /**
+   * Corpus-source-provided loader. The sub-agent wrapper (trusted Node code)
+   * calls this to fetch the doc body before embedding it in the user
+   * message. The LLM itself never touches filesystem or MCP directly.
+   */
+  loadDoc: (docId: string) => Promise<StoredDoc>;
 }
 
 export async function runSubagent(opts: RunOptions): Promise<SubagentResult> {
   const startedAt = Date.now();
-  const doc = await loadDoc(opts.docId);
+  const doc = await opts.loadDoc(opts.docId);
   const { server, capture } = makeEmitSignalsServer(
     opts.specifiedFindingFormat ?? undefined,
   );

@@ -142,6 +142,12 @@ export interface AskOptions {
    * payload fails validation have `accuracy_pass=false`.
    */
   specifiedFindingFormat?: PayloadFormat;
+  /**
+   * Optional corpus source. Defaults to the local filesystem source (docs in
+   * `knowledge-base/`). Callers pass a source name string ("filesystem",
+   * "mcp:notion") — `ask()` resolves it via `resolveCorpusSource`.
+   */
+  sourceKind?: string;
 }
 
 /**
@@ -150,7 +156,18 @@ export interface AskOptions {
  * (streams from an SSE route into progress cards).
  */
 export type ProgressEvent =
-  | { type: "started"; question: string; kb_size: number }
+  | {
+      type: "started";
+      question: string;
+      /**
+       * Number of docs in the corpus. Present for filesystem sources (known
+       * upfront) and omitted for MCP sources where the workspace size is
+       * either unknown or too large to enumerate cheaply.
+       */
+      kb_size?: number;
+      /** Which corpus source is answering this question. */
+      source_kind?: string;
+    }
   | { type: "filter_started" }
   | {
       type: "filter_done";
