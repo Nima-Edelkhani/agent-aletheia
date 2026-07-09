@@ -67,9 +67,11 @@ export async function ask(
 }> {
   const startedAt = Date.now();
   const config = await loadConfig();
-  const source: CorpusSource = await resolveCorpusSource(
-    (options.sourceKind as CorpusSourceKind | undefined) ?? "filesystem",
-  );
+  const source: CorpusSource =
+    (options.source as CorpusSource | undefined) ??
+    (await resolveCorpusSource(
+      (options.sourceKind as CorpusSourceKind | undefined) ?? "filesystem",
+    ));
   const specifiedFindingFormat = options.specifiedFindingFormat ?? null;
 
   // For sources that can cheaply enumerate the corpus (filesystem), include

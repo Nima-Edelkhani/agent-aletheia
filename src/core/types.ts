@@ -143,11 +143,19 @@ export interface AskOptions {
    */
   specifiedFindingFormat?: PayloadFormat;
   /**
-   * Optional corpus source. Defaults to the local filesystem source (docs in
-   * `knowledge-base/`). Callers pass a source name string ("filesystem",
-   * "mcp:notion") — `ask()` resolves it via `resolveCorpusSource`.
+   * Corpus source by name. Defaults to `"filesystem"`. Passing
+   * `"mcp:notion"` etc. makes `ask()` build the corresponding adapter via
+   * `resolveCorpusSource`. Ignored if `source` (below) is set — that takes
+   * precedence for callers who've already constructed a source instance
+   * (e.g. tests injecting a mock).
    */
   sourceKind?: string;
+  /**
+   * Pre-built CorpusSource instance. Takes precedence over `sourceKind`.
+   * Typed as `unknown` here to keep this types file dependency-free; the
+   * orchestrator narrows it back to CorpusSource internally.
+   */
+  source?: unknown;
 }
 
 /**

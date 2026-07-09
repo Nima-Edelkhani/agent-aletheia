@@ -73,7 +73,12 @@ function ProgressLine({ event: e }: { event: ProgressEvent }) {
       return (
         <span className="flex items-center gap-2">
           <Info className="size-3.5 text-neutral-600" />
-          Received question. KB has <strong>{e.kb_size}</strong> doc(s).
+          Received question.{" "}
+          {typeof e.kb_size === "number" ? (
+            <>KB has <strong>{e.kb_size}</strong> doc(s).</>
+          ) : (
+            <>Source: <strong>{e.source_kind ?? "unknown"}</strong>.</>
+          )}
         </span>
       );
     case "filter_started":

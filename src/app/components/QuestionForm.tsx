@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AskResult } from "../actions";
+import { getAvailableSources } from "../actions";
 import type { ProgressEvent } from "@core/types";
 import { ResponseView } from "./ResponseView";
 import { ProgressLog } from "./ProgressLog";
@@ -11,6 +12,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowUp, ChevronDown, ChevronRight, Loader2, X } from "lucide-react";
+
+interface AvailableSourceView {
+  kind: string;
+  label: string;
+  configured: boolean;
+  hint?: string;
+}
 
 interface Entry {
   ts: number;
@@ -26,7 +34,28 @@ export function QuestionForm() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [startedAt, setStartedAt] = useState<number>(0);
   const [running, setRunning] = useState(false);
+  const [sources, setSources] = useState<AvailableSourceView[]>([
+    { kind: "filesystem", label: "Local files", configured: true },
+  ]);
+  const [sourceKind, setSourceKind] = useState<string>("filesystem");
   const abortRef = useRef<AbortController | null>(null);
+
+  // Discover configured corpus sources at mount. MCP sources only appear
+  // when their credentials are present in the server env at request time.
+  useEffect(() => {
+    let cancelled = false;
+    getAvailableSources()
+      .then((list) => {
+        if (cancelled) return;
+        setSources(list as AvailableSourceView[]);
+      })
+      .catch(() => {
+        /* keep the fallback filesystem-only list */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -63,6 +92,7 @@ export function QuestionForm() {
         body: JSON.stringify({
           question: q,
           specified_finding_format: specifiedFindingFormat ?? null,
+          source_kind: sourceKind,
         }),
         signal: ac.signal,
       });
@@ -127,12 +157,33 @@ export function QuestionForm() {
       <form onSubmit={submit}>
         <Card className="border border-neutral-200 shadow-sm">
           <CardContent className="space-y-3 p-4">
-            <Label
-              htmlFor="q"
-              className="text-[11px] font-semibold uppercase tracking-[0.15em] text-muted"
-            >
-              Question
-            </Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label
+                htmlFor="q"
+                className="text-[11px] font-semibold uppercase tracking-[0.15em] text-muted"
+              >
+                Question
+              </Label>
+              {sources.length > 1 && (
+                <label className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-muted">
+                  Source
+                  <select
+                    value={sourceKind}
+                    onChange={(e) => setSourceKind(e.target.value)}
+                    className="ml-1 rounded border border-neutral-200 bg-transparent px-1 py-0.5 text-[11px] font-normal normal-case tracking-normal text-ink focus:outline-none focus:ring-1 focus:ring-neutral-400"
+                    disabled={running}
+                  >
+                    {sources
+                      .filter((s) => s.configured)
+                      .map((s) => (
+                        <option key={s.kind} value={s.kind}>
+                          {s.label}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              )}
+            </div>
             <Textarea
               id="q"
               value={question}
