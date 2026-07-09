@@ -28,10 +28,12 @@ export async function POST(req: NextRequest) {
 
   let question: string;
   let specifiedFindingFormat: PayloadFormat | undefined;
+  let sourceKind: string | undefined;
   try {
     const body = (await req.json()) as {
       question?: string;
       specified_finding_format?: PayloadFormat | null;
+      source_kind?: string;
     };
     if (!body.question || typeof body.question !== "string") {
       return new Response("Missing question", { status: 400 });
@@ -39,6 +41,9 @@ export async function POST(req: NextRequest) {
     question = body.question;
     if (body.specified_finding_format) {
       specifiedFindingFormat = body.specified_finding_format;
+    }
+    if (body.source_kind && typeof body.source_kind === "string") {
+      sourceKind = body.source_kind;
     }
   } catch {
     return new Response("Bad JSON", { status: 400 });
@@ -57,6 +62,7 @@ export async function POST(req: NextRequest) {
       try {
         const { response, trace } = await ask(question, onProgress, {
           specifiedFindingFormat,
+          sourceKind,
         });
         write({ type: "result", response, trace });
       } catch (err) {

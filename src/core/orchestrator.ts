@@ -1,5 +1,6 @@
 import { loadConfig } from "./config";
-import { listMetadata } from "./knowledge-base";
+import { resolveCorpusSource } from "./corpus";
+import type { CorpusSource, CorpusSourceKind } from "./corpus/types";
 import { callJson } from "./llm";
 import { sum } from "./cost";
 import { runSubagent } from "./subagent";
@@ -66,14 +67,31 @@ export async function ask(
 }> {
   const startedAt = Date.now();
   const config = await loadConfig();
-  const metadata = await listMetadata();
+  const source: CorpusSource =
+    (options.source as CorpusSource | undefined) ??
+    (await resolveCorpusSource(
+      (options.sourceKind as CorpusSourceKind | undefined) ?? "filesystem",
+    ));
   const specifiedFindingFormat = options.specifiedFindingFormat ?? null;
-  onProgress({ type: "started", question, kb_size: metadata.length });
 
-  // ---------- Step 1: Filter ----------
+  // For sources that can cheaply enumerate the corpus (filesystem), include
+  // the kb_size in the started event. For MCP sources we omit it — the
+  // workspace may be too large to inventory upfront.
+  const kbSize = source.listMetadata
+    ? (await source.listMetadata()).length
+    : undefined;
+  onProgress({
+    type: "started",
+    question,
+    kb_size: kbSize,
+    source_kind: source.kind,
+  });
+
+  // ---------- Step 1: Filter (delegated to the corpus source) ----------
   onProgress({ type: "filter_started" });
-  const filterResult = await filterStep(question, metadata, config);
+  const filterResult = await source.explore(question, config);
   const scope = filterResult.scope_of_exploration;
+  const scopeMetadata = filterResult.scope_metadata;
   onProgress({
     type: "filter_done",
     scope_of_exploration: scope,
@@ -83,7 +101,7 @@ export async function ask(
 
   // ---------- Step 2: Rescope (payload_format is no longer synthesized) ----------
   onProgress({ type: "rescope_started" });
-  const rescopeResult = await rescopeStep(question, metadata, scope, config);
+  const rescopeResult = await rescopeStep(question, scopeMetadata, config);
   const questionRescoped = rescopeResult.question_rescoped;
   onProgress({
     type: "rescope_done",
@@ -98,6 +116,7 @@ export async function ask(
     questionRescoped,
     specifiedFindingFormat,
     config,
+    source,
     onProgress,
   );
   onProgress({
@@ -121,7 +140,7 @@ export async function ask(
 
   // ---------- Step 7: Aggregate into response text ----------
   onProgress({ type: "aggregate_started" });
-  const aggregate = await aggregateStep(question, keptSignals, metadata, scope, config);
+  const aggregate = await aggregateStep(question, keptSignals, scopeMetadata, config);
   onProgress({ type: "aggregate_done", cost: aggregate.cost });
 
   // ---------- Assemble ----------
@@ -186,104 +205,12 @@ export async function ask(
 }
 
 /* ============================================================
- * Step 1: Filter — metadata → scope_of_exploration
+ * Step 1 (Filter) is delegated to the CorpusSource. For filesystem this
+ * embeds the full metadata index in one LLM call (see
+ * src/core/corpus/filesystem.ts). For MCP sources this spawns an
+ * exploration agent with search tools. Either way the orchestrator only
+ * ever sees the shortlist + scoped metadata that comes back.
  * ============================================================ */
-
-async function filterStep(
-  question: string,
-  metadata: DocMeta[],
-  config: AletheiaConfig,
-): Promise<{ scope_of_exploration: string[]; reasoning: string; cost: number }> {
-  if (metadata.length === 0) {
-    return { scope_of_exploration: [], reasoning: "Knowledge base is empty.", cost: 0 };
-  }
-
-  const today = new Date().toISOString().slice(0, 10);
-
-  const systemPrompt = [
-    "You are the orchestrator's filter step for Aletheia.",
-    "Given the user's question and the metadata index for every document in the",
-    "knowledge base, produce `scope_of_exploration`: the list of doc IDs that",
-    "must be read in detail.",
-    "",
-    `Today's date is ${today}. Interpret every relative time expression`,
-    `("last month", "past 3 weeks", "since March", "past quarter", "in Q1")`,
-    "against this date.",
-    "",
-    "You filter STRICTLY on metadata that is directly derivable from the",
-    "structured fields — you never infer topical content from metadata. The",
-    "sub-agents will read bodies and decide what's relevant.",
-    "",
-    "Rules for constructing scope_of_exploration:",
-    "",
-    "  1. TIME FILTERS are the primary lever. If the question specifies a time",
-    "     range (relative or absolute), include EVERY document whose `date`",
-    "     falls in that range, and EXCLUDE every document that falls outside.",
-    "     This is a strict inclusion + exclusion — do not prune within the",
-    "     time window and do not extend beyond it.",
-    "",
-    "  2. STRUCTURED-METADATA FILTERS also gate scope when the question names",
-    "     them explicitly: customer name, customer tier, meeting_type,",
-    "     product_discussed, participant role. Combine these with the time",
-    "     filter via AND (a doc must satisfy both to be in scope).",
-    "",
-    "  3. If the question has NO time filter and NO structured filter, include",
-    "     every document. The sub-agents will decide what's relevant.",
-    "",
-    "  4. DO NOT try to infer topical relevance from metadata. Questions like",
-    "     'about pricing', 'discussed integrations', 'raised concerns' cannot",
-    "     be answered from metadata alone — always defer to the sub-agents by",
-    "     leaving any doc that passes the time + structured filters in scope.",
-    "     When unsure, INCLUDE.",
-    "",
-    "  5. Return doc IDs verbatim from the metadata index.",
-  ].join("\n");
-
-  const userMessage = [
-    `Today's date: ${today}`,
-    "",
-    "# User question",
-    question,
-    "",
-    "# Metadata index",
-    "```json",
-    JSON.stringify(metadata, null, 2),
-    "```",
-    "",
-    "Compute scope_of_exploration per the rules. Reasoning should name the",
-    "hard filter(s) you identified (if any) and how each in-scope doc satisfies",
-    "them.",
-  ].join("\n");
-
-  const result = await callJson<{ scope_of_exploration: string[]; reasoning: string }>({
-    model: config.models.filter,
-    systemPrompt,
-    userMessage,
-    toolName: "report_scope",
-    toolDescription: "Report the filtered document scope for exploration.",
-    inputSchema: {
-      type: "object",
-      additionalProperties: false,
-      required: ["scope_of_exploration", "reasoning"],
-      properties: {
-        scope_of_exploration: {
-          type: "array",
-          items: { type: "string" },
-          description: "Doc IDs to explore in detail.",
-        },
-        reasoning: { type: "string" },
-      },
-    },
-  });
-
-  const validIds = new Set(metadata.map((m) => m.id));
-  const scope = result.data.scope_of_exploration.filter((id) => validIds.has(id));
-  return {
-    scope_of_exploration: scope,
-    reasoning: result.data.reasoning,
-    cost: result.cost,
-  };
-}
 
 /* ============================================================
  * Step 2: Rescope (payload_format is NO LONGER synthesized here —
@@ -294,15 +221,13 @@ async function filterStep(
 
 async function rescopeStep(
   question: string,
-  metadata: DocMeta[],
-  scope: string[],
+  scopedMetadata: DocMeta[],
   config: AletheiaConfig,
 ): Promise<{
   question_rescoped: string;
   reasoning: string;
   cost: number;
 }> {
-  const scopedMetadata = metadata.filter((m) => scope.includes(m.id));
   const systemPrompt = [
     "You are the orchestrator's rescope step for Aletheia.",
     "",
@@ -374,6 +299,7 @@ async function fanoutWithTimeouts(
   questionRescoped: string,
   specifiedFindingFormat: PayloadFormat | null,
   config: AletheiaConfig,
+  source: CorpusSource,
   onProgress: OnProgress,
 ): Promise<FanoutOutcome> {
   if (scope.length === 0) {
@@ -390,6 +316,7 @@ async function fanoutWithTimeouts(
       specifiedFindingFormat,
       model: config.models.subagent,
       config,
+      loadDoc: (id) => source.loadDoc(id),
     })
       .then((r) => {
         resolved.set(docId, r);
@@ -463,8 +390,7 @@ async function fanoutWithTimeouts(
 async function aggregateStep(
   question: string,
   signals: Signal[],
-  metadata: DocMeta[],
-  scope: string[],
+  scopedMetadata: DocMeta[],
   config: AletheiaConfig,
 ): Promise<{ response_text: string; response_reasoning: string; cost: number }> {
   const contributing = signals.filter((s) => s.signal_type === "signal");
@@ -478,8 +404,6 @@ async function aggregateStep(
       cost: 0,
     };
   }
-
-  const scopedMetadata = metadata.filter((m) => scope.includes(m.id));
 
   const systemPrompt = [
     "You are the orchestrator's aggregate step for Aletheia.",

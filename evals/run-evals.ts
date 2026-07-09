@@ -3,7 +3,9 @@ import { readFile, mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { ask } from "../src/core/orchestrator";
 import { loadBody } from "../src/core/knowledge-base";
+import type { CorpusSource } from "../src/core/corpus/types";
 import type { SignalSignal, Signal } from "../src/core/types";
+import { MockNotionCorpusSource } from "./fixtures/mock-notion-mcp";
 
 /* ────────────────────────── golden-set schema ────────────────────────── */
 
@@ -152,16 +154,23 @@ interface CliOpts {
   smoke: boolean;
   reportMd: boolean;
   question?: string;
+  sourceKind: string;
   overrides: Partial<Thresholds>;
 }
 
 function parseArgv(argv: string[]): CliOpts {
-  const out: CliOpts = { smoke: false, reportMd: false, overrides: {} };
+  const out: CliOpts = {
+    smoke: false,
+    reportMd: false,
+    sourceKind: "filesystem",
+    overrides: {},
+  };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--smoke") out.smoke = true;
     else if (a === "--report-md") out.reportMd = true;
     else if (a === "--question") out.question = argv[++i];
+    else if (a === "--source") out.sourceKind = argv[++i];
     else if (a === "--min-recall")
       out.overrides.min_mean_recall = Number(argv[++i]);
     else if (a === "--min-fuzz")
@@ -197,6 +206,10 @@ function printHelp() {
       "  --smoke                        3-question smoke test (fast)",
       "  --question <id>                Run a single question by ID",
       "  --report-md                    Also write a Markdown report alongside JSON",
+      "  --source <name>                Corpus source. 'filesystem' (default) reads",
+      "                                 knowledge-base/. 'mcp:notion' runs against",
+      "                                 the mock Notion fixture (Voxly corpus as",
+      "                                 fake Notion pages).",
       "",
       "  --min-recall <n>               Filter recall (default 0.9)",
       "  --min-fuzz <n>                 Verifiability fuzz threshold (default 85)",
@@ -220,9 +233,41 @@ function printHelp() {
 
 /* ────────────────────────── per-question run ────────────────────────── */
 
-async function runOne(q: GoldenQuestion): Promise<QuestionReport> {
+const NOTION_PREFIX = "mcp:notion:page:";
+
+/**
+ * When running evals against the mock Notion source, the golden set's raw
+ * doc IDs (e.g. `mtg-...`) get remapped to the Notion form
+ * (`mcp:notion:page:mtg-...`). Keeps the golden set single-source-of-truth.
+ */
+function remapQuestion(q: GoldenQuestion, sourceKind: string): GoldenQuestion {
+  if (sourceKind !== "mcp:notion") return q;
+  const wrap = (id: string) =>
+    id.startsWith(NOTION_PREFIX) ? id : `${NOTION_PREFIX}${id}`;
+  const remappedBy: Record<string, number> = {};
+  for (const [k, v] of Object.entries(q.expected_signals_by_meeting ?? {})) {
+    remappedBy[wrap(k)] = v;
+  }
+  return {
+    ...q,
+    expected_scope_ids: q.expected_scope_ids.map(wrap),
+    expected_signals_by_meeting: Object.keys(remappedBy).length
+      ? remappedBy
+      : undefined,
+  };
+}
+
+async function runOne(
+  qRaw: GoldenQuestion,
+  sourceKind: string,
+  source: CorpusSource | undefined,
+): Promise<QuestionReport> {
+  const q = remapQuestion(qRaw, sourceKind);
   const t0 = Date.now();
-  const { response, trace } = await ask(q.question);
+  const { response, trace } = await ask(qRaw.question, undefined, {
+    sourceKind,
+    source,
+  });
   const latency = Date.now() - t0;
   const r = response.response;
 
@@ -243,7 +288,11 @@ async function runOne(q: GoldenQuestion): Promise<QuestionReport> {
   for (const s of contributing) {
     fuzzSum += s.ref_fuzzy_distance;
     try {
-      const body = await loadBody(s.scope_of_signal);
+      // Use the same source the orchestrator used so substring checks work
+      // across filesystem AND mcp:notion (Notion bodies come out different).
+      const body = source
+        ? (await source.loadDoc(s.scope_of_signal)).body
+        : await loadBody(s.scope_of_signal);
       if (
         body.toLowerCase().includes(s.reference_text.toLowerCase().slice(0, 60))
       ) {
@@ -369,14 +418,23 @@ export default async function main(): Promise<void> {
   }
 
   console.error(
-    `[evals] Mode: ${mode}. Running ${questions.length} question(s).\n`,
+    `[evals] Mode: ${mode}. Source: ${opts.sourceKind}. Running ${questions.length} question(s).\n`,
   );
+
+  // For MCP evals we build the mock Notion source once and inject it into
+  // ask() via options.source. This bypasses the real resolver (which would
+  // try to build a Notion adapter with a live token) and gives us
+  // deterministic, no-network runs.
+  let injectedSource: CorpusSource | undefined;
+  if (opts.sourceKind === "mcp:notion") {
+    injectedSource = new MockNotionCorpusSource();
+  }
 
   const reports: QuestionReport[] = [];
   for (const q of questions) {
     console.error(`[evals] ${q.id}  ${q.question}`);
     try {
-      const r = await runOne(q);
+      const r = await runOne(q, opts.sourceKind, injectedSource);
       reports.push(r);
       const meetingCell =
         r.signal_count_by_meeting_recall === null

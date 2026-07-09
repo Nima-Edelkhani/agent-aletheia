@@ -56,6 +56,11 @@ program
   )
   .option("--trace", "Also print the orchestrator trace")
   .option(
+    "--source <name>",
+    "Corpus source: 'filesystem' (default) reads from knowledge-base/, 'mcp:notion' explores a connected Notion workspace via MCP. Configure sources via `pnpm aletheia connect <name>`.",
+    "filesystem",
+  )
+  .option(
     "--show-dropped",
     "Also render cards for signals that failed the accuracy filter (hidden by default; the count is always shown)",
   )
@@ -71,6 +76,7 @@ program
         scope?: boolean;
         extract?: string;
         trace?: boolean;
+        source?: string;
         showDropped?: boolean;
         debug?: boolean;
       },
@@ -91,7 +97,7 @@ program
       const { response, trace } = await ask(
         question,
         (e) => printProgress(e, t0),
-        { specifiedFindingFormat },
+        { specifiedFindingFormat, sourceKind: opts.source },
       );
       const elapsed = Date.now() - t0;
       // Clear the progress area with a blank line before the final render.
@@ -136,6 +142,24 @@ program
   });
 
 program
+  .command("connect <source>")
+  .description(
+    "Configure a corpus source. Currently supported: 'notion'. Guides you through adding the necessary credentials to .env and verifies them.",
+  )
+  .action(async (sourceArg: string) => {
+    const sourceLower = sourceArg.toLowerCase();
+    if (sourceLower !== "notion") {
+      console.error(
+        c.red(
+          `Unknown source: ${sourceArg}. Currently supported: notion.`,
+        ),
+      );
+      process.exit(1);
+    }
+    await runConnectNotion();
+  });
+
+program
   .command("evals")
   .description("Run the golden-set evaluation harness")
   .action(async () => {
@@ -168,11 +192,19 @@ function printProgress(e: ProgressEvent, t0: number): void {
   const t = ((Date.now() - t0) / 1000).toFixed(1).padStart(5, " ");
   const stamp = c.dim(`[${t}s]`);
   switch (e.type) {
-    case "started":
-      console.error(
-        `${stamp} ${c.bold("▶")} Question received. Knowledge base has ${c.cyan(String(e.kb_size))} doc(s).`,
-      );
+    case "started": {
+      const sourceLabel = e.source_kind ? ` via ${c.cyan(e.source_kind)}` : "";
+      if (typeof e.kb_size === "number") {
+        console.error(
+          `${stamp} ${c.bold("▶")} Question received${sourceLabel}. Knowledge base has ${c.cyan(String(e.kb_size))} doc(s).`,
+        );
+      } else {
+        console.error(
+          `${stamp} ${c.bold("▶")} Question received${sourceLabel}.`,
+        );
+      }
       break;
+    }
     case "filter_started":
       console.error(`${stamp} ${c.dim("┈")} Step 1: filtering knowledge base by metadata…`);
       break;
@@ -892,6 +924,96 @@ function wrapAnsi(text: string, width: number): string[] {
   }
   if (line.trim()) out.push(line.trimEnd());
   return out;
+}
+
+async function runConnectNotion(): Promise<void> {
+  console.error("");
+  console.error(c.bold("Aletheia — connect a Notion workspace"));
+  console.error(c.dim("─".repeat(38)));
+  console.error("");
+
+  const envPath = resolve(process.cwd(), ".env");
+  const existing = process.env.ALETHEIA_NOTION_TOKEN?.trim();
+
+  if (existing) {
+    process.stderr.write(c.dim("Verifying existing token with Notion... "));
+    const verdict = await verifyNotionToken(existing);
+    if (verdict.ok) {
+      console.error(c.green("OK"));
+      console.error("");
+      console.error(
+        c.dim(
+          "ALETHEIA_NOTION_TOKEN is already set and valid. Try it out:",
+        ),
+      );
+      console.error(
+        `  ${c.cyan("pnpm aletheia ask --source mcp:notion")} ${c.dim(
+          '"What did the team discuss in the last month?"',
+        )}`,
+      );
+      console.error("");
+      return;
+    }
+    console.error(c.red(`FAILED: ${verdict.reason}`));
+    console.error("");
+  }
+
+  console.error(
+    "  1. Create a Notion internal integration and copy its token:",
+  );
+  console.error(`     ${c.cyan("https://www.notion.so/my-integrations")}`);
+  console.error(
+    "     (Give the integration read access to the pages/databases you want Aletheia to see.)",
+  );
+  console.error("");
+  console.error(`  2. Open ${c.cyan(envPath)} and add this line:`);
+  console.error("");
+  console.error(`     ${c.bold("ALETHEIA_NOTION_TOKEN=secret_your-token-here")}`);
+  console.error("");
+  console.error(
+    c.dim(
+      "  Aletheia never asks for or stores the token itself — it stays in .env only.",
+    ),
+  );
+  console.error("");
+  console.error(
+    `  3. Verify it worked: ${c.cyan("pnpm aletheia connect notion")}`,
+  );
+  console.error(
+    `  4. Then ask a question: ${c.cyan(
+      'pnpm aletheia ask --source mcp:notion "..."',
+    )}`,
+  );
+  console.error("");
+}
+
+interface NotionVerdict {
+  ok: boolean;
+  reason?: string;
+}
+
+async function verifyNotionToken(token: string): Promise<NotionVerdict> {
+  try {
+    const res = await fetch("https://api.notion.com/v1/users/me", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Notion-Version": "2022-06-28",
+      },
+    });
+    if (res.ok) return { ok: true };
+    if (res.status === 401) {
+      return { ok: false, reason: "Notion rejected the token (401)." };
+    }
+    return { ok: false, reason: `HTTP ${res.status} from Notion.` };
+  } catch (err) {
+    return {
+      ok: false,
+      reason:
+        err instanceof Error
+          ? `network error: ${err.message}`
+          : "network error",
+    };
+  }
 }
 
 await program.parseAsync(process.argv);

@@ -124,6 +124,7 @@ pnpm aletheia ask <question> [flags]
 
 | Flag                        | Effect                                                                                |
 | --------------------------- | ------------------------------------------------------------------------------------- |
+| `--source <name>`           | Corpus source: `filesystem` (default) or `mcp:notion`. See Corpus sources below.      |
 | `--extract <schemaOrPath>`  | Typed extraction schema (inline JSON if starts with `{`, else file path).             |
 | `--scope`                   | Print every doc ID in `scope_of_exploration` (default just shows the count).          |
 | `--expand`                  | Render each signal as a full card (rescoped question, confidence, accuracy, stats).   |
@@ -134,7 +135,8 @@ pnpm aletheia ask <question> [flags]
 Other subcommands:
 
 - `pnpm aletheia list-docs` — print the metadata index for every doc in the KB.
-- `pnpm aletheia evals` — run the golden-set evaluation harness.
+- `pnpm aletheia connect <source>` — configure an MCP corpus source (Notion today).
+- `pnpm aletheia evals` — run the golden-set evaluation harness. Add `--source mcp:notion` to run the MCP path against the mock fixture.
 
 Timestamped one-line progress fires on stderr as the orchestrator moves through each step and each sub-agent.
 
@@ -170,6 +172,30 @@ Every emitted signal will then also fill a `payload` conforming to that schema; 
 - **Answer** rendered as Markdown with inline `[s1] [s2] ...` clickable citation chips. Clicking a chip smooth-scrolls to the corresponding Signal card and highlights it with an acid-yellow slab shadow.
 - **Signal cards** — always-visible sections: rescoped question, quote (before-grey / reference-black-bold / after-grey with fuzz meter), finding summary + open-string category, optional typed extraction block when `--extract` was used, stats, and a collapsible full-body reader.
 - **Performance panel** — cost / elapsed / signal count + trace JSON viewer.
+
+---
+
+## Corpus sources
+
+Aletheia can read documents from either the local filesystem (the default) or from an **MCP-connected knowledge base** (Notion today, Linear and Jira coming). The rest of the pipeline is identical — same sub-agent-per-doc fan-out, same verifiability floor, same signal cards.
+
+**Local filesystem** (default) — drop files in `knowledge-base/`, see "Adding your own documents" below.
+
+**Notion via MCP** — one-time connect, then per-question source override:
+
+```bash
+# 1. Configure the token (opens .env instructions + verifies via Notion API)
+pnpm aletheia connect notion
+
+# 2. Use it
+pnpm aletheia ask --source mcp:notion "What did the team decide last sprint?"
+```
+
+Or in the web UI: after configuration, a **Source** dropdown appears above the question box.
+
+**How it stays scalable:** the filter step for MCP sources runs a small exploration agent with Notion's search + retrieve tools. It navigates the workspace, narrows to a shortlist of pages, and hands back only the IDs it selected. The orchestrator's context never sees the full workspace metadata — that's what keeps it usable for large Notion workspaces.
+
+**How it stays verifiable:** doc bodies are fetched directly from Notion's REST API (deterministic, no LLM in the loop) when the orchestrator spawns each sub-agent. Sub-agents still get exactly one doc's body, still emit verbatim `reference_text`, still pass through the 3-check judge.
 
 ---
 
