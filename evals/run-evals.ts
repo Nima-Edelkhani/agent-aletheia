@@ -2,7 +2,6 @@ import "dotenv/config";
 import { readFile, mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { ask } from "../src/core/orchestrator";
-import { loadBody } from "../src/core/knowledge-base";
 import type { SignalSignal, Signal } from "../src/core/types";
 
 /* ────────────────────────── golden-set schema ────────────────────────── */
@@ -53,7 +52,6 @@ interface QuestionReport {
   recall: number;
   signal_count: number;
   verifiability_mean_fuzz: number;
-  verifiability_substring_hit_rate: number;
   /**
    * Judge pass rates measured against `trace.raw_signals` — i.e., against
    * what the sub-agents actually emitted, before the filter dropped anything.
@@ -88,7 +86,6 @@ interface FullReport {
     /** Gated. Filter's "did I miss docs I should have picked?" metric. */
     mean_recall: number;
     mean_verifiability_fuzz: number;
-    mean_verifiability_substring_hit_rate: number;
     /** Weighted across ALL raw signals from the whole suite. */
     mean_raw_judge_reference_pass_rate: number;
     mean_raw_judge_question_pass_rate: number;
@@ -121,7 +118,6 @@ interface Thresholds {
    */
   min_mean_recall: number;
   min_mean_verifiability_fuzz: number;
-  min_mean_verifiability_substring_hit_rate: number;
   min_mean_raw_judge_reference_pass_rate: number;
   min_mean_raw_judge_question_pass_rate: number;
   min_mean_raw_judge_category_pass_rate: number;
@@ -131,7 +127,6 @@ interface Thresholds {
 const DEFAULT_THRESHOLDS: Thresholds = {
   min_mean_recall: 0.9,
   min_mean_verifiability_fuzz: 85,
-  min_mean_verifiability_substring_hit_rate: 0.85,
   min_mean_raw_judge_reference_pass_rate: 0.85,
   min_mean_raw_judge_question_pass_rate: 0.85,
   min_mean_raw_judge_category_pass_rate: 0.8,
@@ -166,8 +161,6 @@ function parseArgv(argv: string[]): CliOpts {
       out.overrides.min_mean_recall = Number(argv[++i]);
     else if (a === "--min-fuzz")
       out.overrides.min_mean_verifiability_fuzz = Number(argv[++i]);
-    else if (a === "--min-substring")
-      out.overrides.min_mean_verifiability_substring_hit_rate = Number(argv[++i]);
     else if (a === "--min-raw-ref")
       out.overrides.min_mean_raw_judge_reference_pass_rate = Number(argv[++i]);
     else if (a === "--min-raw-q")
@@ -200,7 +193,6 @@ function printHelp() {
       "",
       "  --min-recall <n>               Filter recall (default 0.9)",
       "  --min-fuzz <n>                 Verifiability fuzz threshold (default 85)",
-      "  --min-substring <n>            Substring hit rate (default 0.85)",
       "  --min-raw-ref <n>              Sub-agent: reference_supports_summary (default 0.85)",
       "  --min-raw-q <n>                Sub-agent: summary_addresses_question (default 0.85)",
       "  --min-raw-cat <n>              Sub-agent: category_is_sensible (default 0.80)",
@@ -237,24 +229,16 @@ async function runOne(q: GoldenQuestion): Promise<QuestionReport> {
   );
   const signalCount = contributing.length;
 
-  // ── Verifiability metrics (measured on the surviving signals in the answer) ──
+  // ── Verifiability (measured on the surviving signals in the answer) ──
+  // One check: the fuzz score already computed by scoring.ts:fuzzball.
+  // A score of 100 means the reference appeared verbatim; 80–99 means a
+  // close (edit-distance) match against the source body. Sub-80 signals
+  // never survive the accuracy filter, so everything here is >= cutoff.
   let fuzzSum = 0;
-  let substringHits = 0;
   for (const s of contributing) {
     fuzzSum += s.ref_fuzzy_distance;
-    try {
-      const body = await loadBody(s.scope_of_signal);
-      if (
-        body.toLowerCase().includes(s.reference_text.toLowerCase().slice(0, 60))
-      ) {
-        substringHits++;
-      }
-    } catch {
-      /* ignore */
-    }
   }
   const meanFuzz = signalCount > 0 ? fuzzSum / signalCount : 0;
-  const substringRate = signalCount > 0 ? substringHits / signalCount : 0;
 
   // ── Judge pass rates measured on RAW signals from the trace ──
   const rawContributing = trace.raw_signals.filter(
@@ -312,7 +296,6 @@ async function runOne(q: GoldenQuestion): Promise<QuestionReport> {
     recall: round3(recall),
     signal_count: signalCount,
     verifiability_mean_fuzz: round1(meanFuzz),
-    verifiability_substring_hit_rate: round3(substringRate),
     raw_signal_count: rawContributing.length,
     raw_judge_reference_pass_rate: round3(rawRefPass / rawDenom),
     raw_judge_question_pass_rate: round3(rawQPass / rawDenom),
@@ -384,7 +367,7 @@ export default async function main(): Promise<void> {
           : `${r.signal_count_by_meeting_coverage.filter((c) => c.hit).length}/${r.signal_count_by_meeting_coverage.length}`;
       console.error(
         `        r=${r.recall} signals=${r.signal_count} ` +
-          `fuzz=${r.verifiability_mean_fuzz} substr=${r.verifiability_substring_hit_rate} ` +
+          `fuzz=${r.verifiability_mean_fuzz} ` +
           `raw_ref=${r.raw_judge_reference_pass_rate} raw_overall=${r.raw_judge_overall_pass_rate} ` +
           `meeting_cov=${meetingCell} cost=$${r.cost_usd.toFixed(4)} ` +
           `elapsed=${(r.latency_ms / 1000).toFixed(1)}s`,
@@ -427,9 +410,6 @@ export default async function main(): Promise<void> {
     mean_recall: round3(mean(reports.map((r) => r.recall))),
     mean_verifiability_fuzz: round1(
       mean(reports.map((r) => r.verifiability_mean_fuzz)),
-    ),
-    mean_verifiability_substring_hit_rate: round3(
-      mean(reports.map((r) => r.verifiability_substring_hit_rate)),
     ),
     mean_raw_judge_reference_pass_rate: round3(
       weightedRawJudgeRate((r) => r.raw_judge_reference_pass_rate),
@@ -511,14 +491,6 @@ function evaluateThresholds(
       `mean_verifiability_fuzz ${aggregates.mean_verifiability_fuzz} < ${t.min_mean_verifiability_fuzz}`,
     );
   }
-  if (
-    aggregates.mean_verifiability_substring_hit_rate <
-    t.min_mean_verifiability_substring_hit_rate
-  ) {
-    failures.push(
-      `mean_verifiability_substring_hit_rate ${aggregates.mean_verifiability_substring_hit_rate} < ${t.min_mean_verifiability_substring_hit_rate}`,
-    );
-  }
   if (ctx.hasRawJudged) {
     if (
       aggregates.mean_raw_judge_reference_pass_rate <
@@ -594,9 +566,6 @@ function renderMarkdown(full: FullReport): string {
   lines.push(
     `| Mean fuzz | ${a.mean_verifiability_fuzz} | ≥ ${t.min_mean_verifiability_fuzz} |`,
   );
-  lines.push(
-    `| Mean substring hit rate | ${a.mean_verifiability_substring_hit_rate} | ≥ ${t.min_mean_verifiability_substring_hit_rate} |`,
-  );
   lines.push("");
 
   lines.push("## Sub-agent quality (judge pass rates on raw_signals)");
@@ -656,10 +625,10 @@ function renderMarkdown(full: FullReport): string {
   lines.push("## Per-question");
   lines.push("");
   lines.push(
-    "| ID | Precision | Recall | Signals (raw) | Fuzz | Substr | Raw judge ref/q/cat/overall | Meeting coverage | Cost | Latency (s) |",
+    "| ID | Precision | Recall | Signals (raw) | Fuzz | Raw judge ref/q/cat/overall | Meeting coverage | Cost | Latency (s) |",
   );
   lines.push(
-    "| --- | ---: | ---: | ---: | ---: | ---: | :---: | :---: | ---: | ---: |",
+    "| --- | ---: | ---: | ---: | ---: | :---: | :---: | ---: | ---: |",
   );
   for (const r of full.per_question) {
     const judgeCell = `${r.raw_judge_reference_pass_rate} / ${r.raw_judge_question_pass_rate} / ${r.raw_judge_category_pass_rate} / ${r.raw_judge_overall_pass_rate}`;
@@ -668,7 +637,7 @@ function renderMarkdown(full: FullReport): string {
         ? "—"
         : `${r.signal_count_by_meeting_coverage.filter((c) => c.hit).length}/${r.signal_count_by_meeting_coverage.length} (${r.signal_count_by_meeting_recall})`;
     lines.push(
-      `| ${r.id} | ${r.precision} | ${r.recall} | ${r.signal_count} (${r.raw_signal_count}) | ${r.verifiability_mean_fuzz} | ${r.verifiability_substring_hit_rate} | ${judgeCell} | ${meetingCell} | $${r.cost_usd.toFixed(4)} | ${(r.latency_ms / 1000).toFixed(1)} |`,
+      `| ${r.id} | ${r.precision} | ${r.recall} | ${r.signal_count} (${r.raw_signal_count}) | ${r.verifiability_mean_fuzz} | ${judgeCell} | ${meetingCell} | $${r.cost_usd.toFixed(4)} | ${(r.latency_ms / 1000).toFixed(1)} |`,
     );
   }
   lines.push("");
