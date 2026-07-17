@@ -261,7 +261,7 @@ The harness measures **four distinct qualities** and gates on suite-wide aggrega
 | Layer | What it tests | Metrics | Default gate |
 | --- | --- | :---: | :---: |
 | **Filter step** | Did the filter pick the right docs? | `mean_recall` (`mean_precision` tracked but not gated) | ≥ 0.9 |
-| **Verifiability** | Are the quotes real? | `mean_verifiability_fuzz` / `..._substring_hit_rate` | ≥ 85 / ≥ 0.85 |
+| **Verifiability** | Are the quotes real? | `mean_verifiability_fuzz` (100 = verbatim; 80–99 = close match) | ≥ 85 |
 | **Sub-agent quality** | Are raw sub-agent emissions clean? (weighted across all raw signals in the run) | `mean_raw_judge_reference_pass_rate` / `..._question_` / `..._category_` / `..._overall_` | ≥ 0.85 / ≥ 0.85 / ≥ 0.80 / ≥ 0.70 |
 | **Answer coverage** | Did each expected meeting contribute signals? | `mean_signal_count_by_meeting_recall` | ≥ 0.9 |
 

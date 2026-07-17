@@ -3,7 +3,7 @@
 The evaluation harness answers four questions about any Aletheia code change:
 
 1. **Did the filter step pick the right documents?** (recall on `scope_of_exploration`)
-2. **Are the surviving signals real and verifiable?** (fuzz score + substring-in-body check)
+2. **Are the surviving signals real and verifiable?** (fuzz score of `reference_text` against the source body)
 3. **Are the sub-agents emitting quality findings?** (3-check judge pass rates on raw sub-agent output)
 4. **Did each expected meeting actually contribute signals to the final answer?** (signal count by meeting)
 
@@ -71,7 +71,6 @@ All thresholds are **suite-wide aggregates**. Per-question values appear in the 
 | --- | ---: | --- |
 | `mean_recall` | 0.9 | `--min-recall` |
 | `mean_verifiability_fuzz` | 85 | `--min-fuzz` |
-| `mean_verifiability_substring_hit_rate` | 0.85 | `--min-substring` |
 | `mean_raw_judge_reference_pass_rate` | 0.85 | `--min-raw-ref` |
 | `mean_raw_judge_question_pass_rate` | 0.85 | `--min-raw-q` |
 | `mean_raw_judge_category_pass_rate` | 0.80 | `--min-raw-cat` |
@@ -89,8 +88,7 @@ The threshold set actually used is echoed into the JSON report so you can reprod
 - `mean_precision` — of the docs the filter DID include, what fraction were correct? Not gated but visible.
 
 ### Verifiability (on `response.signals` — the filtered set)
-- **`mean_verifiability_fuzz`** — mean `ref_fuzzy_distance` across surviving signals. Drops here mean sub-agents are paraphrasing quotes.
-- **`mean_verifiability_substring_hit_rate`** — fraction of signals whose `reference_text` genuinely appears in the referenced doc's body. This is the "did we make up the quote?" hard check.
+- **`mean_verifiability_fuzz`** — mean `ref_fuzzy_distance` across surviving signals. Sub-80 signals never make it here (dropped by the accuracy filter), so this is measured across [80, 100]: a score of 100 means the reference is a verbatim substring of the body, 80–99 means a close (edit-distance) match. Regressions here mean sub-agents are drifting toward paraphrase.
 
 ### Sub-agent quality (on `trace.raw_signals` — pre-filter)
 
