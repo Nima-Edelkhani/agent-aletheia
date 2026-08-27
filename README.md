@@ -65,11 +65,11 @@ pnpm start
 
 You have a folder of JSON documents (meeting transcripts, notes, memos, anything). You ask a question in plain English. Aletheia:
 
-1. **Filters** the KB by metadata only (never reads bodies at this step) to find a narrow doc scope.
+1. **Filters** the KB by metadata only (never reads bodies at this step) to find a narrow doc scope. Time-scoped questions ("in May and June 2026", "the last 2 months") are enforced **deterministically**: the model resolves the phrase to an absolute date window, but the actual include/exclude is done in code against each doc's `date`, so a stale document can't slip through. If nothing is in scope (e.g. no meeting falls in the window), it short-circuits with an explicit answer — "no meetings in that window" — and runs no sub-agents.
 2. **Rescopes** the multi-doc question into a per-doc question.
 3. **Fans out one sub-agent per doc** in parallel. Each sub-agent reads only its own doc and emits zero or more affirmative findings.
 4. **Filters signals** by fuzz-score and accuracy thresholds.
-5. **Aggregates** into a plain-English answer with **inline `[s1]/[s2]` citation chips** that jump to the signal cards.
+5. **Aggregates** into a plain-English answer with **inline `[s1]/[s2]` citation chips** that jump to the signal cards. When the docs were searched but nothing matched, the answer says so plainly rather than inventing evidence.
 
 Two-layer architecture:
 
@@ -112,7 +112,7 @@ A signal's `accuracy_pass` is `true` only when **all three** checks pass. The fu
 
 Signals that fail the cheap pre-filter (payload doesn't validate against a `specified_finding_format` schema, or fuzz below `ref_fuzzy_distance_cutoff`) short-circuit to a fail without spending on the judge. The pre-filter reason is written into `accuracy_adjudication.reference_supports_summary.reason`.
 
-The judge sees four few-shot examples in its system prompt: an all-pass case, a reference-drift failure, an off-topic failure, and a sloppy-category failure. Prompts are prompt-cached across sub-agents in a single question run.
+The judge reads its few-shot examples from [`config/judge-fewshots.json`](./config/judge-fewshots.json) (loaded at runtime by `src/core/judge-fewshots.ts`), organized by the three checks above — each with PASS and FAIL exemplars that isolate one check. Edit that file to tune judge behavior without touching code. Prompts are prompt-cached across sub-agents in a single question run.
 
 ---
 
@@ -246,12 +246,11 @@ rm knowledge-base/*.json && pnpm start   # restores the 10 Voxly transcripts
 
 ## Evaluation
 
-The repo ships with a **synthetic corpus of 10 Voxly meeting transcripts** (`examples/voxly-corpus/`), a **golden set of 15 hand-labeled questions** (`evals/golden-set.json`), and **few-shot exemplars** (`evals/few-shots/`) that show what a well-formed run looks like end-to-end.
+The repo ships with a **synthetic corpus of 10 Voxly meeting transcripts** (`examples/voxly-corpus/`) and a **golden set of hand-labeled questions** (`evals/golden-set.json`). The accuracy judge's PASS/FAIL exemplars live separately in [`config/judge-fewshots.json`](./config/judge-fewshots.json) — they're runtime config for the judge, not per-question run traces.
 
 ```bash
-pnpm evals:smoke               # 3-question smoke test — ~3–5 min
-pnpm evals                     # full 15-question golden set — ~15 min
-pnpm evals -- --question q-004 # single question by ID
+pnpm evals                     # full golden set (real LLM calls)
+pnpm evals -- --question q-001 # single question by ID
 pnpm evals -- --report-md      # also write a Markdown report
 pnpm evals -- --help           # all threshold override flags
 ```
@@ -271,6 +270,8 @@ The harness measures **four distinct qualities** and gates on suite-wide aggrega
 
 **Why precision is tracked but not gated** — the filter prompt is intentionally inclusive ("when unsure, INCLUDE"). Gating precision at 0.9 would fight the design. It still appears in every report; if it drifts toward 0.3 that's a sign the filter is over-scoping and worth investigating.
 
+**Why verifiability excludes empty answers** — the two verifiability means are averaged over questions that produced ≥1 signal (reported as `questions_with_signals`). A legitimately empty answer ("no meetings in that window") has nothing to verify, so counting it as `fuzz=0` would wrongly drag the suite mean down. When no question produces signals, those two gates are skipped entirely.
+
 Reports are written to `evals/report/<timestamp>.json` (always) and `<timestamp>.md` (with `--report-md`). See [`evals/README.md`](./evals/README.md) for full metric definitions, threshold overrides, and the `expected_signals` schema.
 
 ---
@@ -278,20 +279,24 @@ Reports are written to `evals/report/<timestamp>.json` (always) and `<timestamp>
 ## Testing
 
 ```bash
-pnpm test           # vitest — 75 tests across 7 files
+pnpm test           # vitest — 109 tests across 10 files
+pnpm test:coverage  # vitest run --coverage (v8 → coverage/index.html)
 pnpm typecheck      # tsc --noEmit
 pnpm ci             # typecheck + tests (what CI runs)
 ```
 
-Coverage:
+Tests are deterministic and LLM-free — they cover the pure, correctness-critical logic and gate CI. The LLM steps (`orchestrator`, `subagent`, `llm`) are covered by the evals harness instead. `pnpm test:coverage` writes a per-file report; coverage is scoped to `src/core` (excluding `types.ts` and the thin `llm.ts` wrapper).
 
 - **`tests/scoring.test.ts`** (16 tests) — fuzzball edge cases, before/after context extraction, `preFilterAccuracy` gate (schema + fuzz), null-schema pass-through, custom cutoffs.
 - **`tests/knowledge-base.test.ts`** (22 tests) — the body-leak invariant on `listMetadata()`; all four supported formats (JSON, Markdown with YAML frontmatter, plain text, XML canonical + auto-derive); collision-free IDs across formats; `listMetadataReport()` skipped-file surfacing.
-- **`tests/cost.test.ts`** (6 tests) — token → USD conversion, cache read/write, unknown-model fallback.
-- **`tests/mcp-emit-signals.test.ts`** (7 tests) — MCP tool Zod schema and closure-capture contract with and without `specifiedFindingFormat`, direct handler invocation.
+- **`tests/time-window.test.ts`** (19 tests) — deterministic date filtering: `toIsoDate` coercion, window normalization, inclusive `[start, end]` boundaries, open-ended bounds, the empty-window case, and dropping docs with missing/unparseable dates.
+- **`tests/signal-filter.test.ts`** (11 tests) — step 6 threshold filter: `accuracy_pass_enforced` on/off, `ref_fuzzy_distance_cutoff` variants, `no-signal` pass-through, drop-reason accumulation, ordering guarantees, empty-input case.
 - **`tests/citations.test.ts`** (11 tests) — the `[sN]` → markdown-link preprocessor and cited-index extractor, including case-sensitivity and multi-digit handling.
-- **`tests/signal-filter.test.ts`** (9 tests) — step 6 threshold filter: `accuracy_pass_enforced` on/off, `ref_fuzzy_distance_cutoff` variants, `no-signal` pass-through, drop-reason accumulation, ordering guarantees, empty-input case.
-- **`tests/accuracy-adjudication.test.ts`** (4 tests) — structural contract for the LLM judge's verdict: three named checks with `{ pass, reason }`, `overall_pass` mirrors the AND, cost/model preserved, reasons always populated.
+- **`tests/mcp-emit-signals.test.ts`** (7 tests) — MCP tool Zod schema and closure-capture contract with and without `specifiedFindingFormat`, direct handler invocation.
+- **`tests/accuracy-adjudication.test.ts`** (7 tests) — the judge's `overallPass` three-way AND (exhaustive truth table) plus the `AccuracyAdjudication` shape contract.
+- **`tests/cost.test.ts`** (6 tests) — token → USD conversion, cache read/write, unknown-model fallback.
+- **`tests/empty-scope.test.ts`** (5 tests) — `pickEmptyScopeMessage` branching: empty-KB vs. empty-window vs. no-match, window labels, and empty-KB precedence.
+- **`tests/judge-fewshots.test.ts`** (5 tests) — the judge few-shot loader/renderer: all three checks present, each with ≥1 pass and ≥1 fail, required fields, and graceful degradation when the file is missing.
 
 ---
 
@@ -306,9 +311,10 @@ Runtime knobs live in [`config/thresholds.json`](./config/thresholds.json):
 | `confidence_cutoff`              | Minimum sub-agent self-reported confidence (0.0–1.0). Signals below this are dropped from the answer. Default 0.5. |
 | `timeouts_ms`                    | `soft_timeout_ms` + `soft_at_percent_done` + `hard_timeout_ms` for the fan-out.     |
 | `models`                         | Per-role model IDs: `filter`, `rescope`, `subagent`, `accuracy_judge`, `aggregate`. |
+| `temperatures`                   | Per-role sampling temperature. Deterministic steps (`filter`, `rescope`, `accuracy_judge`) run at 0; generative steps at 0.2. **`subagent` is documented but inert** — the Claude Agent SDK `query()` exposes no temperature control. |
 | `context_window`                 | `before_max_chars` / `after_max_chars` — how much context to cut around a quote.    |
 
-Price table for cost estimation lives in code (`src/core/cost.ts:PRICES`) — update as pricing changes.
+The accuracy judge's PASS/FAIL exemplars live in [`config/judge-fewshots.json`](./config/judge-fewshots.json) (loaded at runtime). Price table for cost estimation lives in code (`src/core/cost.ts:PRICES`) — update as pricing changes.
 
 ---
 
@@ -320,6 +326,10 @@ src/
 │   ├── orchestrator.ts       Filter → rescope → fan-out → filter signals → aggregate
 │   ├── subagent.ts           Per-doc SDK query, affirmative-only contract, post-processing
 │   ├── knowledge-base.ts     listMetadata (never leaks body) + loadDoc
+│   ├── time-window.ts        Deterministic date-window filtering (pure)
+│   ├── empty-scope.ts        Answer text when nothing is in scope (pure)
+│   ├── adjudication.ts       Judge overall-pass three-way AND (pure)
+│   ├── judge-fewshots.ts     Loads config/judge-fewshots.json into the judge prompt
 │   ├── scoring.ts            Fuzzball + before/after extraction + heuristic accuracy
 │   ├── mcp/emit-signals.ts   In-process MCP server with conditional Zod shape
 │   ├── llm.ts                Anthropic wrapper for orchestrator LLM steps
@@ -334,9 +344,10 @@ src/
 ├── components/               Shared UI (mode-toggle, aletheia-mark, section-marker) + shadcn/ui + AI Elements
 └── bin/aletheia.ts           CLI: ask · list-docs · evals
 
-evals/                        golden-set.json + few-shots/ + run-evals.ts + report/
+evals/                        golden-set.json + run-evals.ts + report/
 examples/voxly-corpus/        Synthetic test corpus (10 meeting transcripts)
-config/thresholds.json        Runtime knobs
+config/thresholds.json        Runtime knobs (models, temperatures, thresholds)
+config/judge-fewshots.json    Accuracy-judge PASS/FAIL exemplars
 knowledge-base/               Your docs go here (seeded by `pnpm start`)
 tests/                        Vitest regression tests
 scripts/setup.mjs             `pnpm start` first-run wizard

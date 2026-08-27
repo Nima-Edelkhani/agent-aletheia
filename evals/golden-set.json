@@ -1,134 +1,55 @@
 [
   {
     "id": "q-001",
-    "question": "What did customers discuss in the past month?",
+    "question": "Has any customer talked about price in the months of May and June 2026?",
     "expected_scope_ids": [
+      "mtg-2026-05-07-nimbus_health-churn_save",
       "mtg-2026-06-12-meridian_retail-feature_request"
     ],
-    "expected_answer_must_mention": ["Meridian Retail"],
+    "expected_answer_must_mention": [
+      "Nimbus Health",
+      "Meridian Retail"
+    ],
     "expected_signals_by_meeting": {
+      "mtg-2026-05-07-nimbus_health-churn_save": 1,
       "mtg-2026-06-12-meridian_retail-feature_request": 1
     }
   },
   {
     "id": "q-002",
-    "question": "What have customers said in the past 2 months?",
-    "expected_scope_ids": [
-      "mtg-2026-05-07-nimbus_health-churn_save",
-      "mtg-2026-06-12-meridian_retail-feature_request"
+    "question": "Has any customer talked about a pain point in the month of August 2026?",
+    "expected_scope_ids": [],
+    "expected_answer_must_mention": [
+      "no meetings",
+      "did not search any documents"
     ],
-    "expected_answer_must_mention": ["Nimbus Health", "Meridian Retail"],
-    "expected_signals_by_meeting": {
-      "mtg-2026-05-07-nimbus_health-churn_save": 1,
-      "mtg-2026-06-12-meridian_retail-feature_request": 1
-    }
+    "expected_signals_by_meeting": {}
   },
   {
     "id": "q-003",
-    "question": "What was raised in customer meetings in the past 3 months?",
+    "question": "Which customers have given us a positive feedback in April and May 2026?",
     "expected_scope_ids": [
       "mtg-2026-04-15-fintrust-expansion_discussion",
-      "mtg-2026-05-07-nimbus_health-churn_save",
-      "mtg-2026-06-12-meridian_retail-feature_request"
+      "mtg-2026-05-07-nimbus_health-churn_save"
     ],
-    "expected_answer_must_mention": ["Fintrust", "Nimbus Health", "Meridian Retail"],
+    "expected_answer_must_mention": [
+      "Fintrust",
+      "Nimbus Health"
+    ],
     "expected_signals_by_meeting": {
       "mtg-2026-04-15-fintrust-expansion_discussion": 1,
-      "mtg-2026-05-07-nimbus_health-churn_save": 1,
-      "mtg-2026-06-12-meridian_retail-feature_request": 1
+      "mtg-2026-05-07-nimbus_health-churn_save": 1
     }
   },
   {
     "id": "q-004",
-    "question": "What was discussed in discovery calls held in the past 12 months?",
+    "question": "Which customers have talked about the weather in April 2026?",
     "expected_scope_ids": [
-      "mtg-2025-08-14-fintrust-discovery_call",
-      "mtg-2026-03-03-anchorline-discovery_call"
+      "mtg-2026-04-15-fintrust-expansion_discussion"
     ],
-    "expected_answer_must_mention": ["Fintrust", "Anchorline Logistics"],
-    "expected_signals_by_meeting": {
-      "mtg-2025-08-14-fintrust-discovery_call": 1,
-      "mtg-2026-03-03-anchorline-discovery_call": 1
-    }
-  },
-  {
-    "id": "q-005",
-    "question": "What churn risk signals were raised in customer meetings in the past 12 months?",
-    "expected_scope_ids": [
-      "mtg-2026-01-18-globex-churn_save",
-      "mtg-2026-05-07-nimbus_health-churn_save"
+    "expected_answer_must_mention": [
+      "did not find grounded evidence"
     ],
-    "expected_answer_must_mention": ["Globex", "Nimbus Health"],
-    "expected_signals_by_meeting": {
-      "mtg-2026-01-18-globex-churn_save": 1,
-      "mtg-2026-05-07-nimbus_health-churn_save": 1
-    }
-  },
-  {
-    "id": "q-006",
-    "question": "What has Nimbus Health discussed across their meetings in the past 12 months?",
-    "expected_scope_ids": [
-      "mtg-2025-09-22-nimbus_health-feature_request",
-      "mtg-2026-05-07-nimbus_health-churn_save"
-    ],
-    "expected_answer_must_mention": ["Nimbus Health"],
-    "expected_signals_by_meeting": {
-      "mtg-2025-09-22-nimbus_health-feature_request": 1,
-      "mtg-2026-05-07-nimbus_health-churn_save": 1
-    }
-  },
-  {
-    "id": "q-007",
-    "question": "What did startup-tier customers discuss in the past 12 months?",
-    "expected_scope_ids": [
-      "mtg-2025-11-05-acme_corp-kickoff",
-      "mtg-2026-03-03-anchorline-discovery_call"
-    ],
-    "expected_answer_must_mention": ["Acme Corp", "Anchorline Logistics"],
-    "expected_signals_by_meeting": {
-      "mtg-2025-11-05-acme_corp-kickoff": 1,
-      "mtg-2026-03-03-anchorline-discovery_call": 1
-    }
-  },
-  {
-    "id": "q-008",
-    "question": "What did customers discuss in Q2 2026 (April through June)?",
-    "expected_scope_ids": [
-      "mtg-2026-04-15-fintrust-expansion_discussion",
-      "mtg-2026-05-07-nimbus_health-churn_save",
-      "mtg-2026-06-12-meridian_retail-feature_request"
-    ],
-    "expected_answer_must_mention": ["Fintrust", "Nimbus Health", "Meridian Retail"],
-    "expected_signals_by_meeting": {
-      "mtg-2026-04-15-fintrust-expansion_discussion": 1,
-      "mtg-2026-05-07-nimbus_health-churn_save": 1,
-      "mtg-2026-06-12-meridian_retail-feature_request": 1
-    }
-  },
-  {
-    "id": "q-009",
-    "question": "Which customers raised pricing concerns in the past 3 months?",
-    "expected_scope_ids": [
-      "mtg-2026-04-15-fintrust-expansion_discussion",
-      "mtg-2026-05-07-nimbus_health-churn_save",
-      "mtg-2026-06-12-meridian_retail-feature_request"
-    ],
-    "expected_answer_must_mention": ["Nimbus Health"],
-    "expected_signals_by_meeting": {
-      "mtg-2026-05-07-nimbus_health-churn_save": 1
-    }
-  },
-  {
-    "id": "q-010",
-    "question": "Which customers have discussed renewals in the past 3 months?",
-    "expected_scope_ids": [
-      "mtg-2026-04-15-fintrust-expansion_discussion",
-      "mtg-2026-05-07-nimbus_health-churn_save",
-      "mtg-2026-06-12-meridian_retail-feature_request"
-    ],
-    "expected_answer_must_mention": ["Nimbus Health"],
-    "expected_signals_by_meeting": {
-      "mtg-2026-05-07-nimbus_health-churn_save": 1
-    }
+    "expected_signals_by_meeting": {}
   }
 ]

@@ -1,0 +1,143 @@
+{
+  "$comment": "Few-shot examples for the accuracy judge (src/core/subagent.ts:llmAdjudicate3). One block per check; each block has PASS and FAIL examples that ISOLATE that check (the other two checks are held as pass so the target verdict is unambiguous). Rendered into the judge system prompt at runtime by src/core/judge-fewshots.ts. reference_text values are grounded in the Voxly demo corpus in knowledge-base/. Edit here to tune judge behavior without touching TypeScript.",
+  "checks": [
+    {
+      "check": "reference_supports_summary",
+      "guidance": "Does finding_summary follow STRICTLY from reference_text plus its immediate context (before/after)? Reject paraphrase drift, unstated inferences, invented figures, and vibes. The summary may compress and rephrase, but every claim in it must be traceable to the quoted text.",
+      "examples": [
+        {
+          "verdict": "pass",
+          "rescoped_question": "Did the customer raise a cost or pricing concern in this meeting?",
+          "before_reference_text": "One, outbound calls to customers who are late on payments — today that goes through a dialer with human agents.",
+          "reference_text": "That's expensive.",
+          "after_reference_text": "Two, inbound calls from customers responding to statements or dunning notices.",
+          "finding_summary": "Fintrust noted that running outbound collections through human agents is expensive.",
+          "finding_category": "human_agent_cost_concern",
+          "reason": "PASS: the surrounding context ties 'That's expensive' to the human-agent outbound dialer, so the summary is a faithful compression of the quote plus its immediate context."
+        },
+        {
+          "verdict": "pass",
+          "rescoped_question": "Did the customer give positive feedback about the product in this meeting?",
+          "before_reference_text": "The inbound bot is now handling about fifty-two percent of our inbound.",
+          "reference_text": "Our CFO is thrilled.",
+          "after_reference_text": "She's the one who pushed us to look at collections next.",
+          "finding_summary": "Fintrust's CFO is very pleased with the inbound automation, which now handles about half of inbound calls.",
+          "finding_category": "automation_results_praise",
+          "reason": "PASS: both the sentiment ('thrilled') and the ~52% inbound figure appear verbatim in the quote and its preceding context."
+        },
+        {
+          "verdict": "fail",
+          "rescoped_question": "Did the customer raise a cost or pricing concern in this meeting?",
+          "before_reference_text": "The inbound bot is now handling about fifty-two percent of our inbound.",
+          "reference_text": "Our CFO is thrilled.",
+          "after_reference_text": "She's the one who pushed us to look at collections next.",
+          "finding_summary": "The customer's CFO objected to the per-minute pricing as too expensive.",
+          "finding_category": "per_minute_pricing_objection",
+          "reason": "FAIL: the quote expresses praise ('thrilled'), not a pricing objection. The summary contradicts the source — classic drift from positive sentiment to an invented complaint."
+        },
+        {
+          "verdict": "fail",
+          "rescoped_question": "Did the customer raise a cost or pricing concern in this meeting?",
+          "before_reference_text": "We looked at the per-call economics versus our current setup.",
+          "reference_text": "the volume adds up quickly",
+          "after_reference_text": "so we want to understand the model before we commit.",
+          "finding_summary": "The customer said the 32-cents-per-minute rate would cost them roughly $2M per year.",
+          "finding_category": "annual_cost_projection",
+          "reason": "FAIL: neither '32 cents per minute' nor '$2M per year' appears anywhere in the quote or context. The specific figures are fabricated even though the topic (cost) is plausible."
+        }
+      ]
+    },
+    {
+      "check": "summary_addresses_question",
+      "guidance": "Does finding_summary directly address the rescoped_question? A finding can be perfectly supported by the reference_text yet still be off-topic for what was asked. Reject real-but-irrelevant findings.",
+      "examples": [
+        {
+          "verdict": "pass",
+          "rescoped_question": "Did the customer raise a cost or pricing concern in this meeting?",
+          "before_reference_text": "Startup tier is nine cents per minute with a floor.",
+          "reference_text": "Nine cents is workable now, but if we scale to our whole fleet that floor is going to hurt.",
+          "after_reference_text": "We'd need to revisit the commit before then.",
+          "finding_summary": "Anchorline flagged that the per-minute pricing floor will become painful as they scale usage.",
+          "finding_category": "pricing_floor_scaling_concern",
+          "reason": "PASS: the rescoped question asks about cost/pricing concerns, and the summary describes exactly such a concern."
+        },
+        {
+          "verdict": "pass",
+          "rescoped_question": "Did the customer give positive feedback about the product in this meeting?",
+          "before_reference_text": "On the technical side, containment on the adult line is at forty-eight percent.",
+          "reference_text": "The technical execution on the adult side is good.",
+          "after_reference_text": "Compliance-wise, v2 has been solid.",
+          "finding_summary": "Nimbus Health praised the technical execution on the adult line.",
+          "finding_category": "technical_execution_praise",
+          "reason": "PASS: the question asks for positive feedback and the summary reports a direct compliment about the product."
+        },
+        {
+          "verdict": "fail",
+          "rescoped_question": "Did the customer raise a cost or pricing concern in this meeting?",
+          "before_reference_text": "We wanted to work through the outstanding items from the last email thread.",
+          "reference_text": "the Zendesk and Twilio integration questions from the last email thread",
+          "after_reference_text": "That was a long thread.",
+          "finding_summary": "Beacon SaaS raised open questions about their Zendesk and Twilio integrations.",
+          "finding_category": "integration_open_questions",
+          "reason": "FAIL: the finding is real and well-supported, but the rescoped question is about cost/pricing. An integration question is off-topic and must fail THIS check."
+        },
+        {
+          "verdict": "fail",
+          "rescoped_question": "Did the customer raise a cost or pricing concern in this meeting?",
+          "before_reference_text": "Quick round of intros.",
+          "reference_text": "I own the Salesforce instance and the telephony stack — we're on Genesys today.",
+          "after_reference_text": "So I'll care about the integration points.",
+          "finding_summary": "Fintrust's IT director owns their Salesforce instance and runs Genesys telephony.",
+          "finding_category": "customer_tech_stack",
+          "reason": "FAIL: an accurate infrastructure fact, but it says nothing about cost or pricing, so it does not address the question."
+        }
+      ]
+    },
+    {
+      "check": "category_is_sensible",
+      "guidance": "Is finding_category a specific, well-formed snake_case label that describes THIS finding? Reject generic dumps ('misc', 'general', 'stuff', 'other', 'notes'), non-snake_case labels, and labels that don't match the summary.",
+      "examples": [
+        {
+          "verdict": "pass",
+          "rescoped_question": "Did the customer raise a cost or pricing concern in this meeting?",
+          "before_reference_text": "On the Spanish support module —",
+          "reference_text": "The fifteen percent uplift on the Spanish support module is a lot for us.",
+          "after_reference_text": "We need to model that against expected volume.",
+          "finding_summary": "Meridian Retail objected to the 15% pricing uplift on the Spanish language module.",
+          "finding_category": "language_module_uplift_objection",
+          "reason": "PASS: snake_case, specific, and it accurately names the finding (an objection to the language-module uplift)."
+        },
+        {
+          "verdict": "pass",
+          "rescoped_question": "Did the customer give positive feedback about the product in this meeting?",
+          "before_reference_text": "Compliance-wise,",
+          "reference_text": "v2 has been solid. BAA is in place, audit logs are working, no incidents.",
+          "after_reference_text": "That part we're happy with.",
+          "finding_summary": "Nimbus Health reported that v2 has been solid on compliance, with the BAA in place and audit logs working.",
+          "finding_category": "compliance_reliability_praise",
+          "reason": "PASS: a precise snake_case label that matches the compliance-focused praise in the summary."
+        },
+        {
+          "verdict": "fail",
+          "rescoped_question": "Did the customer raise a cost or pricing concern in this meeting?",
+          "before_reference_text": "On the Spanish support module —",
+          "reference_text": "The fifteen percent uplift on the Spanish support module is a lot for us.",
+          "after_reference_text": "We need to model that against expected volume.",
+          "finding_summary": "Meridian Retail objected to the 15% pricing uplift on the Spanish language module.",
+          "finding_category": "misc",
+          "reason": "FAIL: the summary is fine, but 'misc' is a generic dump that tells a reader nothing about the finding."
+        },
+        {
+          "verdict": "fail",
+          "rescoped_question": "Did the customer raise a cost or pricing concern in this meeting?",
+          "before_reference_text": "On the Spanish support module —",
+          "reference_text": "The fifteen percent uplift on the Spanish support module is a lot for us.",
+          "after_reference_text": "We need to model that against expected volume.",
+          "finding_summary": "Meridian Retail objected to the 15% pricing uplift on the Spanish language module.",
+          "finding_category": "integration_blocker",
+          "reason": "FAIL: 'integration_blocker' is well-formed snake_case but describes the wrong thing — the finding is a pricing objection, not an integration problem. The label must match the finding."
+        }
+      ]
+    }
+  ]
+}

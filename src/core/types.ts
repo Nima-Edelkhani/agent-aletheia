@@ -208,6 +208,22 @@ export interface AletheiaConfig {
     accuracy_judge: string;
     aggregate: string;
   };
+  /**
+   * Per-step sampling temperature (0–1). Deterministic steps (filter,
+   * rescope, accuracy_judge) run at 0; generative steps at 0.2.
+   *
+   * NOTE: `subagent` is documented here for completeness but is NOT wired —
+   * the sub-agent runs through the Claude Agent SDK's `query()`, which does
+   * not expose a temperature control. The value has no effect until that
+   * path is reworked onto the raw Messages API.
+   */
+  temperatures: {
+    filter: number;
+    rescope: number;
+    subagent: number;
+    accuracy_judge: number;
+    aggregate: number;
+  };
   context_window: {
     before_max_chars: number;
     after_max_chars: number;

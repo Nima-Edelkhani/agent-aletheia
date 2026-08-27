@@ -23,6 +23,13 @@ const CONFIG: AletheiaConfig = {
     accuracy_judge: "claude-haiku-4-5-20251001",
     aggregate: "claude-sonnet-4-6",
   },
+  temperatures: {
+    filter: 0,
+    rescope: 0,
+    subagent: 0.2,
+    accuracy_judge: 0,
+    aggregate: 0.2,
+  },
   context_window: { before_max_chars: 1000, after_max_chars: 1000 },
 };
 
