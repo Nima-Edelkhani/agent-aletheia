@@ -87,6 +87,11 @@ interface FullReport {
     mean_precision: number;
     /** Gated. Filter's "did I miss docs I should have picked?" metric. */
     mean_recall: number;
+    /**
+     * Averaged over signal-producing questions ONLY (see
+     * `questions_with_signals`). Questions with an empty answer have nothing to
+     * verify and are excluded so they don't drag the mean to 0.
+     */
     mean_verifiability_fuzz: number;
     mean_verifiability_substring_hit_rate: number;
     /** Weighted across ALL raw signals from the whole suite. */
@@ -102,6 +107,9 @@ interface FullReport {
     mean_signal_count_by_meeting_recall: number;
     total_raw_signals: number;
     total_expected_meetings: number;
+    /** How many questions produced ≥1 signal — the denominator for the two
+     * verifiability means above. */
+    questions_with_signals: number;
     mean_latency_ms: number;
     total_cost_usd: number;
   };
@@ -408,6 +416,13 @@ export default async function main(): Promise<void> {
     );
   };
 
+  // Verifiability (fuzz + substring) is only meaningful for questions that
+  // actually produced signals. A legitimately empty answer (e.g. "no meetings
+  // in that window") has nothing to verify, so it must NOT contribute a 0 that
+  // drags the suite mean down. Average these metrics over signal-producing
+  // questions only, and skip their thresholds entirely when there are none.
+  const questionsWithSignals = reports.filter((r) => r.signal_count > 0);
+
   const questionsWithMeetingCheck = reports.filter(
     (r) => r.signal_count_by_meeting_recall !== null,
   );
@@ -426,10 +441,10 @@ export default async function main(): Promise<void> {
     mean_precision: round3(mean(reports.map((r) => r.precision))),
     mean_recall: round3(mean(reports.map((r) => r.recall))),
     mean_verifiability_fuzz: round1(
-      mean(reports.map((r) => r.verifiability_mean_fuzz)),
+      mean(questionsWithSignals.map((r) => r.verifiability_mean_fuzz)),
     ),
     mean_verifiability_substring_hit_rate: round3(
-      mean(reports.map((r) => r.verifiability_substring_hit_rate)),
+      mean(questionsWithSignals.map((r) => r.verifiability_substring_hit_rate)),
     ),
     mean_raw_judge_reference_pass_rate: round3(
       weightedRawJudgeRate((r) => r.raw_judge_reference_pass_rate),
@@ -446,6 +461,7 @@ export default async function main(): Promise<void> {
     mean_signal_count_by_meeting_recall: round3(meanMeetingRecall),
     total_raw_signals: totalRawSignals,
     total_expected_meetings: totalExpectedMeetings,
+    questions_with_signals: questionsWithSignals.length,
     mean_latency_ms: Math.round(mean(reports.map((r) => r.latency_ms))),
     total_cost_usd: round4(reports.reduce((a, r) => a + r.cost_usd, 0)),
   };
@@ -453,6 +469,7 @@ export default async function main(): Promise<void> {
   const failures = evaluateThresholds(aggregates, thresholds, {
     hasMeetingCheck: questionsWithMeetingCheck.length > 0,
     hasRawJudged: totalRawSignals > 0,
+    hasVerifiableSignals: questionsWithSignals.length > 0,
   });
 
   const full: FullReport = {
@@ -498,7 +515,11 @@ export default async function main(): Promise<void> {
 function evaluateThresholds(
   aggregates: FullReport["aggregates"],
   t: Thresholds,
-  ctx: { hasMeetingCheck: boolean; hasRawJudged: boolean },
+  ctx: {
+    hasMeetingCheck: boolean;
+    hasRawJudged: boolean;
+    hasVerifiableSignals: boolean;
+  },
 ): string[] {
   const failures: string[] = [];
   if (aggregates.mean_recall < t.min_mean_recall) {
@@ -506,18 +527,22 @@ function evaluateThresholds(
       `mean_recall ${aggregates.mean_recall} < ${t.min_mean_recall}`,
     );
   }
-  if (aggregates.mean_verifiability_fuzz < t.min_mean_verifiability_fuzz) {
-    failures.push(
-      `mean_verifiability_fuzz ${aggregates.mean_verifiability_fuzz} < ${t.min_mean_verifiability_fuzz}`,
-    );
-  }
-  if (
-    aggregates.mean_verifiability_substring_hit_rate <
-    t.min_mean_verifiability_substring_hit_rate
-  ) {
-    failures.push(
-      `mean_verifiability_substring_hit_rate ${aggregates.mean_verifiability_substring_hit_rate} < ${t.min_mean_verifiability_substring_hit_rate}`,
-    );
+  // Only gate verifiability when at least one question produced signals —
+  // otherwise the means are computed over an empty set and carry no signal.
+  if (ctx.hasVerifiableSignals) {
+    if (aggregates.mean_verifiability_fuzz < t.min_mean_verifiability_fuzz) {
+      failures.push(
+        `mean_verifiability_fuzz ${aggregates.mean_verifiability_fuzz} < ${t.min_mean_verifiability_fuzz}`,
+      );
+    }
+    if (
+      aggregates.mean_verifiability_substring_hit_rate <
+      t.min_mean_verifiability_substring_hit_rate
+    ) {
+      failures.push(
+        `mean_verifiability_substring_hit_rate ${aggregates.mean_verifiability_substring_hit_rate} < ${t.min_mean_verifiability_substring_hit_rate}`,
+      );
+    }
   }
   if (ctx.hasRawJudged) {
     if (
@@ -588,6 +613,11 @@ function renderMarkdown(full: FullReport): string {
   lines.push("");
 
   lines.push("## Verifiability (measured on filtered response.signals)");
+  lines.push("");
+  lines.push(
+    `_Averaged over the ${a.questions_with_signals} of ${full.question_count} ` +
+      `question(s) that produced signals; empty-answer questions are excluded._`,
+  );
   lines.push("");
   lines.push("| Metric | Value | Threshold |");
   lines.push("| --- | ---: | ---: |");

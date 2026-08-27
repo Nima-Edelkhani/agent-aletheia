@@ -5,6 +5,14 @@ import { sum } from "./cost";
 import { runSubagent } from "./subagent";
 import { filterSignals, type DroppedSignalEntry } from "./signal-filter";
 export type { DroppedSignalEntry } from "./signal-filter";
+import {
+  applyTimeWindow,
+  formatWindow,
+  normalizeTimeWindow,
+  type TimeWindow,
+} from "./time-window";
+export type { TimeWindow } from "./time-window";
+import { pickEmptyScopeMessage } from "./empty-scope";
 import type {
   AletheiaConfig,
   AletheiaResponse,
@@ -54,6 +62,13 @@ export interface OrchestratorTrace {
   timed_out_soft: boolean;
   timed_out_hard: boolean;
   orchestrator_cost: number;
+  /** The resolved time window the filter applied, or null if none. */
+  time_filter: TimeWindow | null;
+  /**
+   * Doc IDs the filter LLM included but the deterministic time-window
+   * enforcement dropped. Empty when there was no time filter.
+   */
+  time_filter_excluded_ids: string[];
 }
 
 export async function ask(
@@ -80,6 +95,23 @@ export async function ask(
     reasoning: filterResult.reasoning,
     cost: filterResult.cost,
   });
+
+  // ---------- Short-circuit: nothing in scope ----------
+  // With no documents to read, there is nothing for the sub-agents to do. We
+  // skip rescope/fan-out/aggregate entirely (no LLM calls, no wasted cost) and
+  // return a tailored answer. The most important case: a time-scoped question
+  // whose window contains no meetings — we say so explicitly instead of the
+  // generic "found no evidence" message, which would wrongly imply we searched.
+  if (scope.length === 0) {
+    return emptyScopeResult({
+      question,
+      metadata,
+      filterResult,
+      config,
+      startedAt,
+      onProgress,
+    });
+  }
 
   // ---------- Step 2: Rescope (payload_format is no longer synthesized) ----------
   onProgress({ type: "rescope_started" });
@@ -175,6 +207,8 @@ export async function ask(
     timed_out_soft: fanoutOutcome.timedOutSoft,
     timed_out_hard: fanoutOutcome.timedOutHard,
     orchestrator_cost: orchestratorCost,
+    time_filter: filterResult.time_filter,
+    time_filter_excluded_ids: filterResult.time_filter_excluded_ids,
   };
 
   onProgress({
@@ -186,16 +220,126 @@ export async function ask(
 }
 
 /* ============================================================
+ * Short-circuit assembly for an empty scope
+ * ============================================================ */
+
+/**
+ * Builds the full `{ response, trace }` for a run where the filter step left
+ * nothing in scope. Emits the remaining progress events as no-ops so
+ * subscribers still see all five steps complete, then returns a tailored
+ * answer. No sub-agents run and no further LLM calls are made.
+ */
+function emptyScopeResult({
+  question,
+  metadata,
+  filterResult,
+  config,
+  startedAt,
+  onProgress,
+}: {
+  question: string;
+  metadata: DocMeta[];
+  filterResult: FilterStepResult;
+  config: AletheiaConfig;
+  startedAt: number;
+  onProgress: OnProgress;
+}): { response: AletheiaResponse; trace: OrchestratorTrace } {
+  // Walk the remaining progress events with empty/zero payloads so the UI
+  // renders steps 2–5 as completed rather than hanging.
+  onProgress({ type: "rescope_started" });
+  onProgress({ type: "rescope_done", question_rescoped: "", cost: 0 });
+  onProgress({ type: "fanout_started", doc_ids: [] });
+  onProgress({ type: "fanout_done", timed_out_soft: false, timed_out_hard: false });
+  onProgress({
+    type: "signal_filter_done",
+    kept: 0,
+    dropped: 0,
+    filtering_reasoning: "No documents in scope; no signals to filter.",
+  });
+  onProgress({ type: "aggregate_started" });
+  onProgress({ type: "aggregate_done", cost: 0 });
+
+  const { response_text: responseText, response_reasoning: responseReasoning } =
+    pickEmptyScopeMessage(metadata.length, filterResult.time_filter);
+
+  const responseBody: ResponseBody = {
+    scope_of_exploration: [],
+    cost_estimate: round6(filterResult.cost),
+    delay: Date.now() - startedAt,
+    response_text: responseText,
+    response_reasoning: responseReasoning,
+    filtering_reasoning: "No documents in scope; no signals to filter.",
+    signals: [],
+  };
+
+  const trace: OrchestratorTrace = {
+    filter_reasoning: filterResult.reasoning,
+    rescope_reasoning: "",
+    aggregate_reasoning: responseReasoning,
+    filtering_reasoning: "No documents in scope; no signals to filter.",
+    unresolved_doc_ids: [],
+    per_doc_costs: {},
+    per_doc_duration_ms: {},
+    errors: {},
+    raw_signal_count: 0,
+    filtered_signal_count: 0,
+    dropped_signals: [],
+    raw_signals: [],
+    thresholds_applied: {
+      ref_fuzzy_distance_cutoff: config.ref_fuzzy_distance_cutoff,
+      confidence_cutoff: config.confidence_cutoff,
+      accuracy_pass_enforced: config.accuracy_pass_enforced,
+    },
+    timed_out_soft: false,
+    timed_out_hard: false,
+    orchestrator_cost: round6(filterResult.cost),
+    time_filter: filterResult.time_filter,
+    time_filter_excluded_ids: filterResult.time_filter_excluded_ids,
+  };
+
+  onProgress({
+    type: "finished",
+    total_cost: round6(filterResult.cost),
+    delay_ms: responseBody.delay,
+  });
+
+  return {
+    response: { question, response: responseBody },
+    trace,
+  };
+}
+
+/* ============================================================
  * Step 1: Filter — metadata → scope_of_exploration
  * ============================================================ */
+
+interface FilterStepResult {
+  scope_of_exploration: string[];
+  reasoning: string;
+  cost: number;
+  /** The resolved window, or null when the question has no time filter. */
+  time_filter: TimeWindow | null;
+  /**
+   * Doc IDs the LLM placed in scope but that the deterministic time-window
+   * enforcement dropped because their `date` fell outside the window (or
+   * they had no usable date). Surfaced in the trace for debugging.
+   */
+  time_filter_excluded_ids: string[];
+}
 
 async function filterStep(
   question: string,
   metadata: DocMeta[],
   config: AletheiaConfig,
-): Promise<{ scope_of_exploration: string[]; reasoning: string; cost: number }> {
+): Promise<FilterStepResult> {
   if (metadata.length === 0) {
-    return { scope_of_exploration: [], reasoning: "Knowledge base is empty.", cost: 0 };
+    return {
+      scope_of_exploration: [],
+      reasoning: "Knowledge base is empty.",
+      cost: 0,
+      time_filter: null,
+      time_filter_excluded_ids: [],
+    };
   }
 
   const today = new Date().toISOString().slice(0, 10);
@@ -217,10 +361,17 @@ async function filterStep(
     "Rules for constructing scope_of_exploration:",
     "",
     "  1. TIME FILTERS are the primary lever. If the question specifies a time",
-    "     range (relative or absolute), include EVERY document whose `date`",
-    "     falls in that range, and EXCLUDE every document that falls outside.",
-    "     This is a strict inclusion + exclusion — do not prune within the",
-    "     time window and do not extend beyond it.",
+    "     range (relative or absolute), resolve it into `time_filter`: an",
+    "     absolute inclusive window {start, end} in YYYY-MM-DD, computed",
+    "     against today's date. Use null for an open bound (e.g. 'before",
+    "     March 2026' → {start: null, end: '2026-02-29'}; 'since Q3' →",
+    "     {start: '2026-07-01', end: null}). If the question has NO time",
+    "     constraint at all, set time_filter to null.",
+    "     Still list the docs you believe fall in the window in",
+    "     scope_of_exploration, but do NOT worry about being perfectly precise",
+    "     on the date math — the orchestrator re-applies the resolved window",
+    "     to every document's `date` field DETERMINISTICALLY and drops any",
+    "     doc outside it. Your job is to resolve the window correctly.",
     "",
     "  2. STRUCTURED-METADATA FILTERS also gate scope when the question names",
     "     them explicitly: customer name, customer tier, meeting_type,",
@@ -255,8 +406,13 @@ async function filterStep(
     "them.",
   ].join("\n");
 
-  const result = await callJson<{ scope_of_exploration: string[]; reasoning: string }>({
+  const result = await callJson<{
+    scope_of_exploration: string[];
+    reasoning: string;
+    time_filter: TimeWindow | null;
+  }>({
     model: config.models.filter,
+    temperature: config.temperatures.filter,
     systemPrompt,
     userMessage,
     toolName: "report_scope",
@@ -264,7 +420,7 @@ async function filterStep(
     inputSchema: {
       type: "object",
       additionalProperties: false,
-      required: ["scope_of_exploration", "reasoning"],
+      required: ["scope_of_exploration", "reasoning", "time_filter"],
       properties: {
         scope_of_exploration: {
           type: "array",
@@ -272,16 +428,51 @@ async function filterStep(
           description: "Doc IDs to explore in detail.",
         },
         reasoning: { type: "string" },
+        time_filter: {
+          type: ["object", "null"],
+          additionalProperties: false,
+          required: ["start", "end"],
+          description:
+            "Resolved absolute inclusive date window, or null when the " +
+            "question has no time constraint.",
+          properties: {
+            start: {
+              type: ["string", "null"],
+              description: "Inclusive start (YYYY-MM-DD) or null for open.",
+            },
+            end: {
+              type: ["string", "null"],
+              description: "Inclusive end (YYYY-MM-DD) or null for open.",
+            },
+          },
+        },
       },
     },
   });
 
   const validIds = new Set(metadata.map((m) => m.id));
-  const scope = result.data.scope_of_exploration.filter((id) => validIds.has(id));
+  const llmScope = result.data.scope_of_exploration.filter((id) => validIds.has(id));
+
+  // ── Deterministic time-window enforcement ──
+  // The LLM resolved the window; we own the inclusion/exclusion decision so a
+  // stale doc can never slip through on fuzzy date math (see TimeWindow docs).
+  const timeFilter = normalizeTimeWindow(result.data.time_filter);
+  const { scope, excluded } = applyTimeWindow(llmScope, metadata, timeFilter);
+
+  let reasoning = result.data.reasoning;
+  if (excluded.length > 0) {
+    reasoning +=
+      `\n\n[deterministic time filter] Dropped ${excluded.length} doc(s) ` +
+      `the model included but whose date falls outside ` +
+      `${formatWindow(timeFilter)}: ${excluded.join(", ")}.`;
+  }
+
   return {
     scope_of_exploration: scope,
-    reasoning: result.data.reasoning,
+    reasoning,
     cost: result.cost,
+    time_filter: timeFilter,
+    time_filter_excluded_ids: excluded,
   };
 }
 
@@ -336,6 +527,7 @@ async function rescopeStep(
     reasoning: string;
   }>({
     model: config.models.rescope,
+    temperature: config.temperatures.rescope,
     systemPrompt,
     userMessage,
     toolName: "report_rescope",
@@ -549,6 +741,7 @@ async function aggregateStep(
 
   const result = await callJson<{ response_text: string; response_reasoning: string }>({
     model: config.models.aggregate,
+    temperature: config.temperatures.aggregate,
     systemPrompt,
     userMessage,
     toolName: "report_response",

@@ -11,23 +11,30 @@ The evaluation harness answers four questions about any Aletheia code change:
 
 ```
 evals/
-├── golden-set.json     10 labeled questions with expected scope/answer patterns
+├── golden-set.json     Labeled questions with expected scope/answer patterns
 ├── run-evals.ts        Harness — computes all metrics + writes reports
-├── few-shots/          Hand-labeled exemplar traces for reference material
 ├── report/             Timestamped JSON (+ optional Markdown) reports
 └── README.md           This file
 ```
 
+The accuracy-judge few-shot examples live in `config/judge-fewshots.json`
+(loaded at runtime by `src/core/judge-fewshots.ts`), not under `evals/` — the
+judge runs inside every sub-agent, so its exemplars are runtime config. See
+["Sub-agent quality"](#sub-agent-quality-on-tracerraw_signals--pre-filter).
+
 ## Running
 
 ```bash
-pnpm evals:smoke                        # 3-question smoke test — ~3–5 min
-pnpm evals                              # full 10-question set — ~10 min
+pnpm evals                              # full golden set (real LLM calls)
 pnpm evals -- --question q-001          # single question by ID
 pnpm evals -- --report-md               # also write a Markdown report
 pnpm evals -- --min-recall 0.85         # override any threshold
 pnpm evals -- --help                    # all flags
 ```
+
+> `pnpm evals:smoke` still exists but its `SMOKE_IDS` (`q-001`, `q-006`, `q-009`)
+> predate the current golden set — only `q-001` matches today, so it runs a
+> single question. Refresh `SMOKE_IDS` in `run-evals.ts` if you grow the set.
 
 **Exit codes**:
 
@@ -89,6 +96,9 @@ The threshold set actually used is echoed into the JSON report so you can reprod
 - `mean_precision` — of the docs the filter DID include, what fraction were correct? Not gated but visible.
 
 ### Verifiability (on `response.signals` — the filtered set)
+
+Both metrics are averaged **only over questions that produced ≥1 signal** (see `questions_with_signals` in the report). A legitimately empty answer — e.g. "no meetings fell in that window" (q-002) or "no grounded evidence" (q-004) — has nothing to verify, so counting it as `fuzz=0` / `substring=0` would wrongly drag the suite mean down. When *no* question produces signals, these two thresholds are skipped entirely (like the raw-judge and meeting-recall gates).
+
 - **`mean_verifiability_fuzz`** — mean `ref_fuzzy_distance` across surviving signals. Drops here mean sub-agents are paraphrasing quotes.
 - **`mean_verifiability_substring_hit_rate`** — fraction of signals whose `reference_text` genuinely appears in the referenced doc's body. This is the "did we make up the quote?" hard check.
 
@@ -109,14 +119,23 @@ Weighted across all raw signals from all questions:
 
 This is the tightest bar. It answers **"did the right meeting actually contribute signals to the final answer?"** — the interaction between filter, fan-out, judge, and threshold filter. If the pipeline includes the doc in scope, the sub-agent fires, the judge accepts the signal, and the threshold filter lets it through — this metric passes. If any of those four steps fails, this metric drops.
 
-## Few-shot exemplars
+## Accuracy-judge few-shots
 
-`few-shots/` holds hand-labeled traces showing what a well-formed run looks like. Reference material; not injected into prompts.
+`config/judge-fewshots.json` holds the pass/fail exemplars the accuracy judge
+reads on every signal. It is organized by the judge's three checks —
+`reference_supports_summary`, `summary_addresses_question`,
+`category_is_sensible` — and each check carries examples that ISOLATE it (the
+target check's verdict is the teaching point; the other two are held as pass).
+`src/core/judge-fewshots.ts` renders them into the judge system prompt at
+runtime, so you can tune judge behavior by editing the JSON — no code change.
+
+The three `raw_judge_*_pass_rate` metrics below measure exactly these checks,
+so if one of them regresses, add or sharpen the corresponding check's examples.
 
 ## When scores drop
 
 1. **Eyeball the failing question** in the JSON report — `response_text` is included in full.
 2. **Look at the meeting-coverage detail** in the Markdown report — which specific expected meeting failed to contribute?
-3. **Compare against the closest few-shot exemplar** — is the shape different? Are `[sN]` markers missing?
+3. **Check which judge check is failing** — per-question `raw_judge_reference_pass_rate` / `raw_judge_question_pass_rate` / `raw_judge_category_pass_rate` isolates the check; sharpen that check's examples in `config/judge-fewshots.json`.
 4. **Run the same question via `pnpm aletheia ask "..." --debug`** to see the full step-by-step. `dropped_signals` is often the smoking gun; per-question `raw_judge_*_pass_rate` tells you which check is failing.
-5. **Check for prompt drift** — the aggregator and rescope prompts in `src/core/orchestrator.ts`, the sub-agent prompt in `src/core/subagent.ts`, and the judge prompt in `src/core/subagent.ts:JUDGE_SYSTEM_PROMPT` are the levers.
+5. **Check for prompt drift** — the aggregator and rescope prompts in `src/core/orchestrator.ts`, the sub-agent prompt in `src/core/subagent.ts`, and the judge prompt (`JUDGE_SYSTEM_PROMPT_BASE` + `config/judge-fewshots.json`) are the levers.

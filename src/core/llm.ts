@@ -27,10 +27,17 @@ export async function callJson<T>(opts: {
   toolDescription: string;
   inputSchema: Record<string, unknown>;
   maxTokens?: number;
+  /**
+   * Sampling temperature (0–1). Omit to use the API default (1.0). The
+   * orchestrator passes per-step values from config so deterministic steps
+   * (filter, rescope, accuracy judge) can run at 0 for reproducibility.
+   */
+  temperature?: number;
 }): Promise<JsonCallResult<T>> {
   const resp = await client().messages.create({
     model: opts.model,
     max_tokens: opts.maxTokens ?? 4096,
+    ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
     system: opts.systemPrompt,
     tools: [
       {

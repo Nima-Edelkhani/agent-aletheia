@@ -8,6 +8,8 @@ import {
   preFilterAccuracy,
 } from "./scoring";
 import { callJson } from "./llm";
+import { renderJudgeFewShots } from "./judge-fewshots";
+import { overallPass } from "./adjudication";
 import { usageToCost } from "./cost";
 import type {
   AccuracyAdjudication,
@@ -343,12 +345,12 @@ function round6(n: number): number {
 /* ────────────────────────── LLM accuracy judge ────────────────────────── */
 
 /**
- * The judge's system prompt. Encodes the three-check contract and provides
- * four few-shot examples covering (a) the all-pass baseline, (b) reference
- * drift, (c) off-topic finding, (d) sloppy category. Kept in code (not a
- * separate file) because it's read by every signal and prompt-cached.
+ * Base of the judge's system prompt — the three-check contract and grading
+ * instructions. The few-shot examples are loaded separately from
+ * `config/judge-fewshots.json` (see `getJudgeSystemPrompt`) so they can be
+ * tuned without editing code.
  */
-const JUDGE_SYSTEM_PROMPT = [
+const JUDGE_SYSTEM_PROMPT_BASE = [
   "You are the accuracy judge for the Aletheia verifiable-RAG system.",
   "",
   "You will be given a candidate signal, extracted by a sub-agent from a single",
@@ -372,48 +374,19 @@ const JUDGE_SYSTEM_PROMPT = [
   "",
   "Be strict. When in doubt, fail. It is better to reject a marginal signal than",
   "to launder a false-positive into the final answer.",
-  "",
-  "─── Few-shot examples ─────────────────────────────────────────────",
-  "",
-  "EXAMPLE 1 — all three checks pass:",
-  '  rescoped_question: "Did the customer raise pricing concerns in this meeting?"',
-  '  reference_text: "thirty-two cents a minute is a lot for us — the volume adds up quickly"',
-  '  finding_summary: "The customer\'s VP pushed back on the per-minute rate as too steep for their expected volume."',
-  '  finding_category: "per_minute_pricing_objection"',
-  "  → reference_supports_summary: pass — the quote directly expresses objection to per-minute pricing",
-  "  → summary_addresses_question: pass — the question asks about pricing concerns; the summary describes one",
-  "  → category_is_sensible: pass — snake_case, specific, matches the finding",
-  "",
-  "EXAMPLE 2 — reference support fails (paraphrase drift):",
-  '  rescoped_question: "Did the customer raise pricing concerns in this meeting?"',
-  '  reference_text: "We\'re excited about the product and the roadmap."',
-  '  finding_summary: "The customer was uncertain about the price."',
-  '  finding_category: "pricing_uncertainty"',
-  "  → reference_supports_summary: FAIL — the quote is about product excitement, nothing about pricing",
-  "  → summary_addresses_question: pass — the summary IS on-topic for the question, but…",
-  "  → category_is_sensible: pass — the label matches the summary",
-  "  Overall: fail (one check failed).",
-  "",
-  "EXAMPLE 3 — question relevance fails (finding is real but off-topic):",
-  '  rescoped_question: "Did the customer raise pricing concerns in this meeting?"',
-  '  reference_text: "We were thinking about switching to Salesforce next quarter."',
-  '  finding_summary: "The customer is planning a CRM migration to Salesforce."',
-  '  finding_category: "crm_migration_plan"',
-  "  → reference_supports_summary: pass — the quote clearly says they're planning a Salesforce switch",
-  "  → summary_addresses_question: FAIL — the question is about pricing; CRM migration is unrelated",
-  "  → category_is_sensible: pass — accurate label for the summary",
-  "  Overall: fail.",
-  "",
-  "EXAMPLE 4 — category fails (sloppy label):",
-  '  rescoped_question: "Did the customer raise pricing concerns in this meeting?"',
-  '  reference_text: "The 15% uplift on the Spanish support module is a lot for us."',
-  '  finding_summary: "The customer objected to the 15% pricing uplift on the Spanish language module."',
-  '  finding_category: "misc"',
-  "  → reference_supports_summary: pass — the quote directly describes the objection",
-  "  → summary_addresses_question: pass — on-topic pricing concern",
-  "  → category_is_sensible: FAIL — 'misc' is a generic dump, does not describe the finding",
-  "  Overall: fail.",
 ].join("\n");
+
+/**
+ * Assembles the full judge system prompt: base rules + the few-shot examples
+ * rendered from `config/judge-fewshots.json`. Memoized inside
+ * `renderJudgeFewShots`, so this is cheap to call per signal, and the string
+ * is stable (hence prompt-cacheable). Falls back to base rules only if the
+ * few-shot file is unavailable.
+ */
+async function getJudgeSystemPrompt(): Promise<string> {
+  const fewShots = await renderJudgeFewShots();
+  return fewShots ? `${JUDGE_SYSTEM_PROMPT_BASE}\n\n${fewShots}` : JUDGE_SYSTEM_PROMPT_BASE;
+}
 
 async function llmAdjudicate3(
   signal: SignalSignal,
@@ -451,7 +424,8 @@ async function llmAdjudicate3(
       category_is_sensible: { pass: boolean; reason: string };
     }>({
       model: config.models.accuracy_judge,
-      systemPrompt: JUDGE_SYSTEM_PROMPT,
+      temperature: config.temperatures.accuracy_judge,
+      systemPrompt: await getJudgeSystemPrompt(),
       userMessage,
       toolName: "report_adjudication",
       toolDescription:
@@ -478,10 +452,7 @@ async function llmAdjudicate3(
       },
     });
 
-    const overall_pass =
-      result.data.reference_supports_summary.pass &&
-      result.data.summary_addresses_question.pass &&
-      result.data.category_is_sensible.pass;
+    const overall_pass = overallPass(result.data);
 
     return {
       reference_supports_summary: result.data.reference_supports_summary,

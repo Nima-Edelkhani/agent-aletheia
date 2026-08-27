@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { AccuracyAdjudication } from "../src/core/types";
+import { overallPass, type ThreeChecks } from "../src/core/adjudication";
 
 /**
  * Structural sanity checks for the AccuracyAdjudication shape emitted by
@@ -38,25 +39,10 @@ describe("AccuracyAdjudication shape", () => {
     );
   });
 
-  it("overall_pass matches the AND of the three sub-checks", () => {
-    const allPass: AccuracyAdjudication = {
-      ...example,
-      reference_supports_summary: { pass: true, reason: "yes" },
-      summary_addresses_question: { pass: true, reason: "yes" },
-      category_is_sensible: { pass: true, reason: "yes" },
-      overall_pass:
-        true && true && true, // documented invariant
-    };
-    expect(allPass.overall_pass).toBe(true);
-
-    const oneFail: AccuracyAdjudication = {
-      ...example,
-      overall_pass:
-        example.reference_supports_summary.pass &&
-        example.summary_addresses_question.pass &&
-        example.category_is_sensible.pass,
-    };
-    expect(oneFail.overall_pass).toBe(false);
+  it("overall_pass mirrors the real overallPass helper", () => {
+    // The example fails one check (category), so the real helper must agree.
+    expect(overallPass(example)).toBe(example.overall_pass);
+    expect(overallPass(example)).toBe(false);
   });
 
   it("carries cost_estimate and model for trace / eval reporting", () => {
@@ -80,5 +66,31 @@ describe("AccuracyAdjudication shape", () => {
     expect(allPass.reference_supports_summary.reason.length).toBeGreaterThan(0);
     expect(allPass.summary_addresses_question.reason.length).toBeGreaterThan(0);
     expect(allPass.category_is_sensible.reason.length).toBeGreaterThan(0);
+  });
+});
+
+describe("overallPass — strict three-way AND", () => {
+  const checks = (r: boolean, q: boolean, c: boolean): ThreeChecks => ({
+    reference_supports_summary: { pass: r },
+    summary_addresses_question: { pass: q },
+    category_is_sensible: { pass: c },
+  });
+
+  it("passes only when all three checks pass", () => {
+    expect(overallPass(checks(true, true, true))).toBe(true);
+  });
+
+  it("fails when any single check fails", () => {
+    expect(overallPass(checks(false, true, true))).toBe(false);
+    expect(overallPass(checks(true, false, true))).toBe(false);
+    expect(overallPass(checks(true, true, false))).toBe(false);
+  });
+
+  it("fails across every remaining combination (exhaustive truth table)", () => {
+    // The 4 remaining of 8 combinations — all have ≥2 failing checks.
+    expect(overallPass(checks(true, false, false))).toBe(false);
+    expect(overallPass(checks(false, true, false))).toBe(false);
+    expect(overallPass(checks(false, false, true))).toBe(false);
+    expect(overallPass(checks(false, false, false))).toBe(false);
   });
 });
